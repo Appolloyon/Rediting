@@ -32,10 +32,19 @@ def gulp(string, start, gulp_size):
 def compare_seqs(seq1, seq2):
     equal = 0
     for i, (r1, r2) in enumerate(zip(seq1, seq2)):
-        if r1 == r2:
-            equal += 1
+        if i == 0:
+            if r1 != '-' and r2 != '-':
+                if r1 == r2:
+                    equal += 1
+                else:
+                    pass
+            else:
+                return False
         else:
-            pass
+            if r1 == r2:
+                equal += 1
+            else:
+                pass
     if equal >= 5:
         return True
     else:
