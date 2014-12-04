@@ -10,7 +10,7 @@ Last Updated: November 25, 2014
 
 import re
 import argparse
-import os
+from classes import SeqPair
 
 parser = argparse.ArgumentParser(
     description = """Calculates editing stats between genomic/RNA sequences""",
@@ -23,6 +23,7 @@ parser.add_argument('infiles', nargs='+', help='list of aligned infiles')
 args = parser.parse_args()
 
 def gulp(string, start, gulp_size):
+    """get substrings of a string"""
     gulpstr = ''
     chars = string[start:start+gulp_size]
     for char in chars:
@@ -30,36 +31,47 @@ def gulp(string, start, gulp_size):
     return gulpstr
 
 def compare_seqs(seq1, seq2):
+    """compare substrings to determine start of alignment"""
     equal = 0
     for i, (r1, r2) in enumerate(zip(seq1, seq2)):
-        if i == 0:
-            if r1 != '-' and r2 != '-':
+        if i == 0:  #terminal residue
+            if r1 != '-' and r2 != '-':  #neither should be a gap
                 if r1 == r2:
                     equal += 1
                 else:
                     pass
             else:
                 return False
-        else:
+        else:  #other residues
             if r1 == r2:
                 equal += 1
             else:
                 pass
-    if equal >= 5:
+    if equal >= 7:  #arbitrary threshold
         return True
     else:
         return False
 
 def nonblank_lines(f):
+    """skip blank lines"""
     for l in f:
         line = l.strip('\n')
         if line:
             yield line
 
+def sanitize(seq):
+    """remove gap characters"""
+    nseq = ''
+    for char in seq:
+        if char == '-':
+            pass
+        else:
+            nseq += char
+    return nseq
 
-for file in args.infiles:
-    name = (os.path.basename(file))
-    with open(file,'U') as f:
+for infile in args.infiles:
+    name = infile.strip('.afa')
+    with open(infile,'U') as f:
         seqdict={}
         for line in nonblank_lines(f):
             line = line.strip('\n')
@@ -71,18 +83,63 @@ for file in args.infiles:
                 seqdict[ID] += line
 
         for k in seqdict.keys():
-            if re.search('mrna',k):
+            if re.search('mrna',k) or re.search('mRNA',k):
                 mseq = seqdict.get(k)
             else:
                 gseq = seqdict.get(k)
 
+    smseq = sanitize(mseq)
+    sgseq = sanitize(gseq)
+    #print "smseq"
+    #print smseq
+    #print "sgseq"
+    #print sgseq
+
+    seq_pair = SeqPair(smseq, sgseq, name)  #sanitized sequences for direct comparison
+
     i = 0
-    while not compare_seqs((gulp(mseq, i, 6)), (gulp(gseq, i, 6))):
+    while not compare_seqs((gulp(mseq, i, 9)), (gulp(gseq, i, 9))):  #start of alignment
+        if gseq[i] != '-':
+            seq_pair.incr_all()
+        if mseq[i] != '-':
+            seq_pair.incr_mrna()
         i += 1
     j = 0
-    while not compare_seqs((gulp(mseq[::-1], j, 6)), (gulp(gseq[::-1], j, 6))):
+    while not compare_seqs((gulp(mseq[::-1], j, 9)), (gulp(gseq[::-1], j, 9))):  #end of alignment
         j += 1
-    newmseq = mseq[i:(len(mseq)-j)]
+    newmseq = mseq[i:(len(mseq)-j)]  #only compare regions that align
     newgseq = gseq[i:(len(gseq)-j)]
-    print newmseq
-    print newgseq
+    #print "newmseq"
+    #print newmseq
+    #print "newgseq"
+    #print newgseq
+
+    edit_list = []
+    for i, (rg, rm) in enumerate(zip(newgseq, newmseq)):  #compare matching regions
+        if rg == '-' and rm != '-':  #insertion in mRNA
+            seq_pair.incr_mrna()
+        elif rm == '-' and rg != '-':  #insertion in DNA
+            seq_pair.incr_all()
+        elif rg == rm:  #residue in both, but no edits
+            seq_pair.incr_all()
+            seq_pair.incr_mrna()
+        elif rg != rm:  #residue in both, but edited
+            pos = seq_pair.index_nuc() + 1
+            cpos = seq_pair.index_position()
+            gnuc = seq_pair.lookup_gnuc()
+            mnuc = seq_pair.lookup_mnuc()
+            gcod = seq_pair.lookup_gcodon()
+            mcod = seq_pair.lookup_mcodon()
+            gaa = seq_pair.lookup_gaa()
+            maa = seq_pair.lookup_maa()
+            edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa])
+            seq_pair.incr_all()
+            seq_pair.incr_mrna()
+
+    outname = name + "_out.csv"
+    with open(outname,'w') as o:
+        o.write("position,codon position,genome base,mRNA base,genome codon,\
+                mRNA codon,genome amino acid,mRNA amino acid")
+        o.write("\n")
+        for P, C, GN, MN, GC, MC, GA, MA in edit_list:
+            o.write("%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA) + "\n")
