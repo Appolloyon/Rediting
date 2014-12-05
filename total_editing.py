@@ -70,18 +70,36 @@ def sanitize(seq):
             nseq += char
     return nseq
 
-for infile in args.infiles:
-    name = infile.strip('.afa')
-    with open(infile,'U') as f:
-        seqdict={}
-        for line in nonblank_lines(f):
-            line = line.strip('\n')
-            if line.startswith(">"):
-                line = line.strip(">")
-                ID = line
-                seqdict[ID] = ''
-            else:
-                seqdict[ID] += line
+def calc_gc(string):
+    GC = 0
+    AT = 0
+    for char in string:
+        if char == "G" or char == "C":
+            GC += 1
+        elif char == "A" or char == "T":
+            AT += 1
+        else:
+            pass
+    gc_content = (GC/float(GC + AT)) * 100
+    return gc_content
+
+
+with open("m_out.csv",'w') as o2:
+    o2.write("gene,GC before,GC after,nuc length,aa length,percent seq edits,\
+percent edits in first two positions,percent aa edits,average edit score" + "\n")
+    for infile in args.infiles:
+        name = infile.strip('.afa')
+        gene = name.split('_')[1]
+        with open(infile,'U') as f:
+            seqdict={}
+            for line in nonblank_lines(f):
+                line = line.strip('\n')
+                if line.startswith(">"):
+                    line = line.strip(">")
+                    ID = line
+                    seqdict[ID] = ''
+                else:
+                    seqdict[ID] += line
 
         for k in seqdict.keys():
             if re.search('mrna',k) or re.search('mRNA',k):
@@ -89,71 +107,82 @@ for infile in args.infiles:
             else:
                 gseq = seqdict.get(k)
 
-    smseq = sanitize(mseq)
-    sgseq = sanitize(gseq)
-    #print "smseq"
-    #print smseq
-    #print "sgseq"
-    #print sgseq
+        smseq = sanitize(mseq)
+        sgseq = sanitize(gseq)
+        #print "smseq"
+        #print smseq
+        #print "sgseq"
+        #print sgseq
 
-    seq_pair = SeqPair(smseq, sgseq, name)  #sanitized sequences for direct comparison
+        seq_pair = SeqPair(smseq, sgseq, name)  #sanitized sequences for direct comparison
 
-    i = 0
-    while not compare_seqs((gulp(mseq, i, 9)), (gulp(gseq, i, 9))):  #start of alignment
-        if gseq[i] != '-':
-            seq_pair.incr_all()
-        if mseq[i] != '-':
-            seq_pair.incr_mrna()
-        i += 1
-    j = 0
-    while not compare_seqs((gulp(mseq[::-1], j, 9)), (gulp(gseq[::-1], j, 9))):  #end of alignment
-        j += 1
-    newmseq = mseq[i:(len(mseq)-j)]  #only compare regions that align
-    newgseq = gseq[i:(len(gseq)-j)]
-    #print "newmseq"
-    #print newmseq
-    #print "newgseq"
-    #print newgseq
+        i = 0
+        while not compare_seqs((gulp(mseq, i, 9)), (gulp(gseq, i, 9))):  #start of alignment
+            if gseq[i] != '-':
+                seq_pair.incr_all()
+            if mseq[i] != '-':
+                seq_pair.incr_mrna()
+            i += 1
+        j = 0
+        while not compare_seqs((gulp(mseq[::-1], j, 9)), (gulp(gseq[::-1], j, 9))):  #end of alignment
+            j += 1
 
-    edit_list = []
-    for i, (rg, rm) in enumerate(zip(newgseq, newmseq)):  #compare matching regions
-        if rg == '-' and rm != '-':  #insertion in mRNA
-            seq_pair.incr_mrna()
-        elif rm == '-' and rg != '-':  #insertion in DNA
-            seq_pair.incr_all()
-        elif rg == rm:  #residue in both, but no edits
-            seq_pair.incr_all()
-            seq_pair.incr_mrna()
-        elif rg != rm:  #residue in both, but edited
-            pos = seq_pair.index_nuc() + 1
-            cpos = seq_pair.index_position()
-            gnuc = seq_pair.lookup_gnuc()
-            mnuc = seq_pair.lookup_mnuc()
-            gcod = seq_pair.lookup_gcodon()
-            mcod = seq_pair.lookup_mcodon()
-            gaa = seq_pair.lookup_gaa()
-            maa = seq_pair.lookup_maa()
-            scr = (Blosum62(gaa, maa).sub_score())
-            edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr])
-            seq_pair.incr_all()
-            seq_pair.incr_mrna()
+        newmseq = mseq[i:(len(mseq)-j)]  #only compare regions that align
+        newgseq = gseq[i:(len(gseq)-j)]
+        #print "newmseq"
+        #print newmseq
+        #print "newgseq"
+        #print newgseq
 
-    out1 = name + "_out.csv"
-    subscore = 0
-    with open(out1,'w') as o1:
-        o1.write("position,codon position,genome base,mRNA base,genome codon,\
+        edit_list = []
+        for i, (rg, rm) in enumerate(zip(newgseq, newmseq)):  #compare matching regions
+            if rg == '-' and rm != '-':  #insertion in mRNA
+                seq_pair.incr_mrna()
+            elif rm == '-' and rg != '-':  #insertion in DNA
+                seq_pair.incr_all()
+            elif rg == rm:  #residue in both, but no edits
+                seq_pair.incr_all()
+                seq_pair.incr_mrna()
+            elif rg != rm:  #residue in both, but edited
+                pos = seq_pair.index_nuc() + 1
+                cpos = seq_pair.index_position()
+                gnuc = seq_pair.lookup_gnuc()
+                mnuc = seq_pair.lookup_mnuc()
+                gcod = seq_pair.lookup_gcodon()
+                mcod = seq_pair.lookup_mcodon()
+                gaa = seq_pair.lookup_gaa()
+                maa = seq_pair.lookup_maa()
+                scr = (Blosum62(gaa, maa).sub_score())
+                edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr])
+                seq_pair.incr_all()
+                seq_pair.incr_mrna()
+
+        out1 = name + "_out.csv"
+        subscore = 0
+        num_aaedits = 0
+        num_fpos = 0
+        with open(out1,'w') as o1:
+            o1.write("position,codon position,genome base,mRNA base,genome codon,\
 mRNA codon,genome amino acid,mRNA amino acid,substitution score")
-        o1.write("\n")
-        for P, C, GN, MN, GC, MC, GA, MA, S in edit_list:
-            o1.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
-            subscore += int(S)
+            o1.write("\n")
+            for P, C, GN, MN, GC, MC, GA, MA, S in edit_list:
+                o1.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
+                subscore += int(S)
+                if GA != MA:
+                    num_aaedits += 1
+                    print num_aaedits
+                if C == 1 or C == 2:
+                    num_fpos += 1
 
-    seqlength = len(newmseq)
-    numedits = float(len(edit_list))
-    percentedits = (numedits/seqlength) * 100
-    editscore = subscore/numedits
-    out2 = name + "_out.txt"
-    with open(out2,'w') as o2:
-        o2.write("%s" % (numedits) + "\n")
-        o2.write("%.2f" % (editscore) + "\n")
-        o2.write("%.2f" % (percentedits))
+        gcb = calc_gc(newgseq)
+        gca = calc_gc(newmseq)
+        seqlength = len(newmseq)
+        aalength = seqlength/3
+        numedits = float(len(edit_list))
+        seqedits = (numedits/seqlength) * 100
+        aaedits = (float(num_aaedits)/aalength) * 100
+        editscore = subscore/numedits
+        fpos = (num_fpos/numedits) * 100
+
+        o2.write("%s,%.2f,%.2f,%s,%s,%.2f,%.2f,%.2f,%.2f" % (gene,gcb,gca,seqlength,\
+                aalength,seqedits,fpos,aaedits,editscore) + "\n")
