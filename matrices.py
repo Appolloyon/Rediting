@@ -35,8 +35,14 @@ class Blosum62(object):
     def __init__(self, aa1, aa2):
         self.aa1 = aa1
         self.aa2 = aa2
-        self.iaa1 = int(Blosum62.aa_index.get(aa1))
-        self.iaa2 = int(Blosum62.aa_index.get(aa2))
+        try:
+            self.iaa1 = int(Blosum62.aa_index.get(aa1))
+        except(TypeError,ValueError):
+            self.iaa1 = 20
+        try:
+            self.iaa2 = int(Blosum62.aa_index.get(aa2))
+        except(TypeError,ValueError):
+            self.iaa2 = 20
 
     def sub_score(self):
         score = Blosum62.blosum.item((self.iaa1,self.iaa2))

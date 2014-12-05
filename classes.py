@@ -45,9 +45,11 @@ class SeqPair(object):
 
     def incr_nuc(self):
         self.gnuc_index += 1
+        #print self.gnuc_index
 
     def incr_mrna(self):
         self.mnuc_index += 1
+        #print self.mnuc_index
 
     def incr_pos(self):
         """maintains position within a codon as 1, 2, or 3"""

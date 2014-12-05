@@ -138,10 +138,22 @@ for infile in args.infiles:
             seq_pair.incr_all()
             seq_pair.incr_mrna()
 
-    outname = name + "_out.csv"
-    with open(outname,'w') as o:
-        o.write("position,codon position,genome base,mRNA base,genome codon,\
-                mRNA codon,genome amino acid,mRNA amino acid,substitution score")
-        o.write("\n")
+    out1 = name + "_out.csv"
+    subscore = 0
+    with open(out1,'w') as o1:
+        o1.write("position,codon position,genome base,mRNA base,genome codon,\
+mRNA codon,genome amino acid,mRNA amino acid,substitution score")
+        o1.write("\n")
         for P, C, GN, MN, GC, MC, GA, MA, S in edit_list:
-            o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
+            o1.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
+            subscore += int(S)
+
+    seqlength = len(newmseq)
+    numedits = float(len(edit_list))
+    percentedits = (numedits/seqlength) * 100
+    editscore = subscore/numedits
+    out2 = name + "_out.txt"
+    with open(out2,'w') as o2:
+        o2.write("%s" % (numedits) + "\n")
+        o2.write("%.2f" % (editscore) + "\n")
+        o2.write("%.2f" % (percentedits))
