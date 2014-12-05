@@ -11,6 +11,7 @@ Last Updated: November 25, 2014
 import re
 import argparse
 from classes import SeqPair
+from matrices import Blosum62
 
 parser = argparse.ArgumentParser(
     description = """Calculates editing stats between genomic/RNA sequences""",
@@ -132,14 +133,15 @@ for infile in args.infiles:
             mcod = seq_pair.lookup_mcodon()
             gaa = seq_pair.lookup_gaa()
             maa = seq_pair.lookup_maa()
-            edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa])
+            scr = (Blosum62(gaa, maa).sub_score())
+            edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr])
             seq_pair.incr_all()
             seq_pair.incr_mrna()
 
     outname = name + "_out.csv"
     with open(outname,'w') as o:
         o.write("position,codon position,genome base,mRNA base,genome codon,\
-                mRNA codon,genome amino acid,mRNA amino acid")
+                mRNA codon,genome amino acid,mRNA amino acid,substitution score")
         o.write("\n")
-        for P, C, GN, MN, GC, MC, GA, MA in edit_list:
-            o.write("%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA) + "\n")
+        for P, C, GN, MN, GC, MC, GA, MA, S in edit_list:
+            o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
