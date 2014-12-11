@@ -102,7 +102,7 @@ percent edits in first two positions,percent aa edits,average edit score" + "\n"
                     seqdict[ID] += line
 
         for k in seqdict.keys():
-            if re.search('mrna',k) or re.search('mRNA',k):
+            if re.search('mrna',k) or re.search('mRNA',k) or re.search('mRNAs',k):
                 mseq = seqdict.get(k)
             else:
                 gseq = seqdict.get(k)
@@ -170,7 +170,7 @@ mRNA codon,genome amino acid,mRNA amino acid,substitution score")
                 subscore += int(S)
                 if GA != MA:
                     num_aaedits += 1
-                    print num_aaedits
+                    #print num_aaedits
                 if C == 1 or C == 2:
                     num_fpos += 1
 
