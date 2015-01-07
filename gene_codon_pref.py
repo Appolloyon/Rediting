@@ -119,7 +119,7 @@ for infile in args.infiles:
     for i, (rg, rm) in enumerate(zip(newgseq, newmseq)):  #compare matching regions
         #print i
         #print "codon position" + '' + str(seq_pair.codon_pos)
-        if seq_pair.codon_pos != 3 or i < 2:
+        if seq_pair.codon_pos != 3 or i < 2:  #only want codons once, only want full codons in both
             seq_pair.incr_all()
             seq_pair.incr_mrna()
         else:
@@ -128,22 +128,16 @@ for infile in args.infiles:
             elif rm == '-' and rg != '-':  #insertion in DNA
                 seq_pair.incr_all()
             else:  #residue in both
-                #print "gcodon:" + str(seq_pair.lookup_gcodon())
-                #print "mcodon:" + str(seq_pair.lookup_mcodon())
                 seq_pair.update_gcodons()
                 seq_pair.update_mcodons()
                 seq_pair.incr_all()
                 seq_pair.incr_mrna()
 
-    #for (k1,v1), (k2,v2) in zip(seq_pair.gnuc_aa_dict.items(), seq_pair.mnuc_aa_dict.items()):
-    #    print k1, v1
-    #    print k2, v2
-
     out = name + "_codons.csv"
     with open(out,'w') as o:
         o.write("amino acid,codon,genome usage,mRNA usage")
         o.write("\n")
-        for k1, k2 in zip(seq_pair.gnuc_aa_dict, seq_pair.mnuc_aa_dict):
+        for k1, k2 in zip(seq_pair.gnuc_aa_dict, seq_pair.mnuc_aa_dict):  #loop through both dictionaries
             o.write(k1)
             for k3, k4 in zip(seq_pair.gnuc_aa_dict[k1].keys(), seq_pair.mnuc_aa_dict[k2].keys()):
                 o.write(',' + k3 + ',' + str(seq_pair.gnuc_aa_dict[k1][k3]) + ',' + str(seq_pair.mnuc_aa_dict[k1][k4]) + "\n")
