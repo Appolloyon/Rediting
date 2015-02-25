@@ -69,19 +69,6 @@ def sanitize(seq):
             nseq += char
     return nseq
 
-def calc_gc(string):
-    GC = 0
-    AT = 0
-    for char in string:
-        if char == "G" or char == "C":
-            GC += 1
-        elif char == "A" or char == "T":
-            AT += 1
-        else:
-            pass
-    gc_content = (GC/float(GC + AT)) * 100
-    return gc_content
-
 def polyT(string):
     """find stretches of 4 or more T's in a row"""
     i = 0
@@ -92,6 +79,17 @@ def polyT(string):
         else:
             pass
         i += 1
+
+def polyTpercent(string):
+    """find stretches of 70% T"""
+    tcounter = 0
+    for char in string:
+        if char == 'T':
+            tcounter += 1
+    if tcounter >= 5:
+        return True
+    else:
+        pass
 
 
 for infile in args.infiles:
@@ -122,6 +120,7 @@ for infile in args.infiles:
     #print sgseq
 
     seq_pair = SeqPair(smseq, sgseq, name)  #sanitized sequences for direct comparison
+    seq_pair2 = SeqPair(smseq, sgseq, name)
 
     i = 0
     while not compare_seqs((gulp(mseq, i, 9)), (gulp(gseq, i, 9))):  #start of alignment
@@ -174,6 +173,44 @@ for infile in args.infiles:
                 seq_pair.incr_all()
                 seq_pair.incr_mrna()
 
+    edit_dict2 = {}
+
+    for i, (rg, rm) in enumerate(zip(newgseq, newmseq)):
+        #print i
+        if i < len(newgseq) - 10:
+            testseq2 = gulp(newgseq, i, 10)
+        else:
+            testseq2 = gulp(newgseq, len(newgseq)-10, 10)
+
+        if polyTpercent(testseq2):
+            #print testseq2
+            if rg == '-' and rm != '-':  #insertion in mRNA
+                seq_pair2.incr_mrna()
+            elif rm == '-' and rg != '-':  #insertion in DNA
+                seq_pair2.incr_all()
+            elif rg == rm:  #residue in both, but no edits
+                seq_pair2.incr_all()
+                seq_pair2.incr_mrna()
+            elif rg != rm:  #residue in both, but edited
+                pos = seq_pair2.index_nuc() + 1
+                cpos = seq_pair2.index_position()
+                gnuc = seq_pair2.lookup_gnuc()
+                mnuc = seq_pair2.lookup_mnuc()
+                gcod = seq_pair2.lookup_gcodon()
+                mcod = seq_pair2.lookup_mcodon()
+                gaa = seq_pair2.lookup_gaa()
+                maa = seq_pair2.lookup_maa()
+
+                if pos not in edit_dict2.keys():
+                    edit_dict2[pos] = []
+                    edit_dict2[pos].extend([cpos,gnuc,mnuc,gcod,mcod,gaa,maa])
+
+                seq_pair.incr_all()
+                seq_pair.incr_mrna()
+        else:
+            seq_pair.incr_all()
+            seq_pair.incr_mrna()
+
     out1 = name + "_polyt_out.csv"
     with open(out1,'w') as o1:
         o1.write("position,codon position,genome base,mRNA base,genome codon,\
@@ -182,3 +219,17 @@ mRNA codon,genome amino acid,mRNA amino acid")
         for P, C, GN, MN, GC, MC, GA, MA in edit_list:
             o1.write("%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA) + "\n")
 
+    #print edit_list
+    #print edit_dict2
+
+    out2 = name + "_polyt_50%_out.csv"
+    with open(out2,'w') as o2:
+        o2.write("position,codon position,genome base,mRNA base,genome codon,\
+mRNA codon,genome amino acid,mRNA amino acid")
+        o2.write("\n")
+        for pos in sorted(edit_dict2.keys()):
+            o2.write("%s," % (pos))
+            for elem in edit_dict2[pos]:
+                #print elem
+                o2.write("%s," % (elem))
+            o2.write("\n")
