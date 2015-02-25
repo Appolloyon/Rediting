@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser(
     also assumes that the files have the string 'gen' or 'mrna' in the seqname,
     for genomic and mRNA sequence, respectively. Output is given as a series of
     csv values for various pertinent stats.""")
+parser.add_argument('-p', '--percent', help='percent cutoff for polyT')
 parser.add_argument('infiles', nargs='+', help='list of aligned infiles')
 args = parser.parse_args()
 
@@ -80,16 +81,25 @@ def polyT(string):
             pass
         i += 1
 
-def polyTpercent(string):
-    """find stretches of 70% T"""
+def polyTpercent(string, percent):
+    """find stretches of X% T"""
     tcounter = 0
     for char in string:
         if char == 'T':
             tcounter += 1
-    if tcounter >= 5:
+    if tcounter >= (percent/10):
         return True
     else:
         pass
+
+def ispolyTpercent(plist):
+    """check list elements for at least one polyT stretch"""
+    for e in plist:
+        if polyTpercent(e, percent):
+            return True
+        else:
+            pass
+    return False
 
 
 for infile in args.infiles:
@@ -126,8 +136,10 @@ for infile in args.infiles:
     while not compare_seqs((gulp(mseq, i, 9)), (gulp(gseq, i, 9))):  #start of alignment
         if gseq[i] != '-':
             seq_pair.incr_all()
+            seq_pair2.incr_all()
         if mseq[i] != '-':
             seq_pair.incr_mrna()
+            seq_pair2.incr_mrna()
         i += 1
     j = 0
     while not compare_seqs((gulp(mseq[::-1], j, 9)), (gulp(gseq[::-1], j, 9))):  #end of alignment
@@ -174,24 +186,25 @@ for infile in args.infiles:
                 seq_pair.incr_mrna()
 
     edit_dict2 = {}
-
+    percent = int(args.percent)
     for i, (rg, rm) in enumerate(zip(newgseq, newmseq)):
-        #print i
-        if i < len(newgseq) - 10:
-            testseq2 = gulp(newgseq, i, 10)
-        else:
-            testseq2 = gulp(newgseq, len(newgseq)-10, 10)
-
-        if polyTpercent(testseq2):
-            #print testseq2
-            if rg == '-' and rm != '-':  #insertion in mRNA
-                seq_pair2.incr_mrna()
-            elif rm == '-' and rg != '-':  #insertion in DNA
-                seq_pair2.incr_all()
-            elif rg == rm:  #residue in both, but no edits
-                seq_pair2.incr_all()
-                seq_pair2.incr_mrna()
-            elif rg != rm:  #residue in both, but edited
+        if rg == '-' and rm != '-':  #insertion in mRNA
+            seq_pair2.incr_mrna()
+        elif rm == '-' and rg != '-':  #insertion in DNA
+            seq_pair2.incr_all()
+        elif rg == rm:  #residue in both, but no edits
+            seq_pair2.incr_all()
+            seq_pair2.incr_mrna()
+        elif rg != rm:  #residue in both, but edited
+            testseq2 = []
+            for y in range(10):
+                try:
+                    testseq2.append(gulp(newgseq, y-i, 10))
+                except:
+                    pass
+            if ispolyTpercent(testseq2):
+                #print i
+                #print testseq2
                 pos = seq_pair2.index_nuc() + 1
                 cpos = seq_pair2.index_position()
                 gnuc = seq_pair2.lookup_gnuc()
@@ -205,11 +218,11 @@ for infile in args.infiles:
                     edit_dict2[pos] = []
                     edit_dict2[pos].extend([cpos,gnuc,mnuc,gcod,mcod,gaa,maa])
 
-                seq_pair.incr_all()
-                seq_pair.incr_mrna()
-        else:
-            seq_pair.incr_all()
-            seq_pair.incr_mrna()
+                seq_pair2.incr_all()
+                seq_pair2.incr_mrna()
+            else:
+                seq_pair2.incr_all()
+                seq_pair2.incr_mrna()
 
     out1 = name + "_polyt_out.csv"
     with open(out1,'w') as o1:
@@ -222,7 +235,7 @@ mRNA codon,genome amino acid,mRNA amino acid")
     #print edit_list
     #print edit_dict2
 
-    out2 = name + "_polyt_50%_out.csv"
+    out2 = name + "_polyt_" + str(percent) + "%_out.csv"
     with open(out2,'w') as o2:
         o2.write("position,codon position,genome base,mRNA base,genome codon,\
 mRNA codon,genome amino acid,mRNA amino acid")
