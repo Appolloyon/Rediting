@@ -8,7 +8,7 @@ def gulp(string, start, gulp_size):
         gulpstr += char
     return gulpstr
 
-def compare_seqs(seq1, seq2):
+def compare_seqs(seq1, seq2, num_equal):
     """compare substrings to determine start of alignment"""
     equal = 0
     for i, (r1, r2) in enumerate(zip(seq1, seq2)):
@@ -25,7 +25,7 @@ def compare_seqs(seq1, seq2):
                 equal += 1
             else:
                 pass
-    if equal >= 7:  #arbitrary threshold
+    if equal >= num_equal:  #arbitrary threshold
         return True
     else:
         return False

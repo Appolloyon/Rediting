@@ -69,13 +69,15 @@ for infile in args.infiles:
     size = int(args.size)
     i = 0
     j = 0
-    while not compare_seqs((gulp(rna_seq, i, size)), (gulp(gen_seq, i, size)), num_equal):
+    while not compare_seqs((gulp(rna_seq, i, size)),\
+            (gulp(gen_seq, i, size)), num_equal):
         if gen_seq[i] != '-':
             seq_pair.incr_all()
         if rna_seq[i] != '-':
             seq_pair.incr_mrna()
         i += 1
-    while not compare_seqs((gulp(rna_seq[::-1], j, size)), (gulp(gen_seq[::-1], j, size)), num_equal):
+    while not compare_seqs((gulp(rna_seq[::-1], j, size)),\
+            (gulp(gen_seq[::-1], j, size)), num_equal):
         j += 1
 
     new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
@@ -173,41 +175,6 @@ for i, (rg, rm) in enumerate(zip(newgseq, newmseq)):  #compare matching regions
 
 ### editing_details.py ###
 
-def base_transition(seq1, seq2):
-    transdict = {'a_t':0, 'a_g':0, 'a_c':0,
-            't_a':0, 't_g':0, 't_c':0,
-            'g_a':0, 'g_t':0, 'g_c':0,
-            'c_a':0, 'c_t':0, 'c_g':0}
-    for i, (b1, b2) in enumerate(zip(seq1, seq2)):
-        if b1 == b2:
-            pass
-        elif b1 == "A" and b2 == "T":
-            transdict['a_t'] += 1
-        elif b1 == "A" and b2 == "G":
-            transdict['a_g'] += 1
-        elif b1 == "A" and b2 == "C":
-            transdict['a_c'] += 1
-        elif b1 == "T" and b2 == "A":
-            transdict['t_a'] += 1
-        elif b1 == "T" and b2 == "G":
-            transdict['t_g'] += 1
-        elif b1 == "T" and b2 == "C":
-            transdict['t_c'] += 1
-        elif b1 == "G" and b2 == "A":
-            transdict['g_a'] += 1
-        elif b1 == "G" and b2 == "T":
-            transdict['g_t'] += 1
-        elif b1 == "G" and b2 == "C":
-            transdict['g_c'] += 1
-        elif b1 == "C" and b2 == "A":
-            transdict['c_a'] += 1
-        elif b1 == "C" and b2 == "T":
-            transdict['c_t'] += 1
-        elif b1 == "C" and b2 == "G":
-            transdict['c_g'] += 1
-        else:
-            pass
-    return transdict
 
 edited_res = 0
         for i, (res1, res2) in enumerate(zip(newseq1, newseq2)):

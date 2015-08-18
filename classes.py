@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-class SeqPair(object):
+class Old_SeqPair(object):
     """Class to model DNA/mRNA sequence pairs"""
 
     def __init__(self, mseq, gseq, name):
@@ -106,7 +106,7 @@ class SeqPair(object):
                     return k1
 
 
-class CodonPair(object):
+class SeqPair(object):
     """Class to model DNA/mRNA sequence pairs"""
 
     def __init__(self, mseq, gseq, name):
@@ -161,6 +161,12 @@ class CodonPair(object):
             'R':{'CGT':0,'CGC':0,'CGA':0,'CGG':0,'AGA':0,'AGG':0},
             'G':{'GGT':0,'GGC':0,'GGA':0,'GGG':0},
             'STOP':{'TAA':0,'TAG':0,'TGA':0}
+            }
+        self.transition_dict = {
+            'a_t':0, 'a_g':0, 'a_c':0,
+            't_a':0, 't_g':0, 't_c':0,
+            'g_a':0, 'g_t':0, 'g_c':0,
+            'c_a':0, 'c_t':0, 'c_g':0
             }
 
 
@@ -252,4 +258,36 @@ class CodonPair(object):
             for k2 in self.mnuc_aa_dict[k1].keys():
                 if k2 == mcodon:
                     self.mnuc_aa_dict[k1][k2] += 1
+
+    def update_transdict(self):
+        """updates transition_dict based on observed bases"""
+        gnuc = self.lookup_gnuc()
+        mnuc = self.lookup_mnuc()
+
+        if gnuc == "A" and mnuc == "T":
+            self.transition_dict['a_t'] += 1
+        elif gnuc == "A" and mnuc == "G":
+            self.transition_dict['a_g'] += 1
+        elif gnuc == "A" and mnuc == "C":
+            self.transition_dict['a_c'] += 1
+        elif gnuc == "T" and mnuc == "A":
+            self.transition_dict['t_a'] += 1
+        elif gnuc == "T" and mnuc == "G":
+            self.transition_dict['t_g'] += 1
+        elif gnuc == "T" and mnuc == "C":
+            self.transition_dict['t_c'] += 1
+        elif gnuc == "G" and mnuc == "A":
+            self.transition_dict['g_a'] += 1
+        elif gnuc == "G" and mnuc == "T":
+            self.transition_dict['g_t'] += 1
+        elif gnuc == "G" and mnuc == "C":
+            self.transition_dict['g_c'] += 1
+        elif gnuc == "C" and mnuc == "A":
+            self.transition_dict['c_a'] += 1
+        elif gnuc == "C" and mnuc == "T":
+            self.transition_dict['c_t'] += 1
+        elif gnuc == "C" and mnuc == "G":
+            self.transition_dict['c_g'] += 1
+        else:
+            pass
 
