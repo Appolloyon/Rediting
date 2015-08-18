@@ -65,6 +65,22 @@ for infile in args.infiles:
     san_gen_seq = sanitize(gen_seq)
     seq_pair = CodonPair(san_rna_seq,san_gen_seq,name)
 
+    num_equal = int(args.numequal)
+    size = int(args.size)
+    i = 0
+    j = 0
+    while not compare_seqs((gulp(rna_seq, i, size)), (gulp(gen_seq, i, size)), num_equal):
+        if gen_seq[i] != '-':
+            seq_pair.incr_all()
+        if rna_seq[i] != '-':
+            seq_pair.incr_mrna()
+        i += 1
+    while not compare_seqs((gulp(rna_seq[::-1], j, size)), (gulp(gen_seq[::-1], j, size)), num_equal):
+        j += 1
+
+    new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
+    new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
+
 
 
 
