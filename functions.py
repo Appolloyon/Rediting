@@ -47,4 +47,17 @@ def sanitize(seq):
             nseq += char
     return nseq
 
+def calc_gc(string):
+    GC = 0
+    AT = 0
+    for char in string:
+        if char == "G" or char == "C":
+            GC += 1
+        elif char == "A" or char == "T":
+            AT += 1
+        else:
+            pass
+    gc_content = (GC/float(GC + AT)) * 100
+    return gc_content
+
 
