@@ -85,26 +85,43 @@ for infile in args.infiles:
 
 ### total_editing.py ###
 
-    edit_list = []
+    if args.basic:
+        edit_list = []
+
     for i, (rg, rm) in enumerate(zip(newgseq, newmseq)):  #compare matching regions
             if rg == '-' and rm != '-':  #insertion in mRNA
                 seq_pair.incr_mrna()
             elif rm == '-' and rg != '-':  #insertion in DNA
                 seq_pair.incr_all()
             elif rg == rm:  #residue in both, but no edits
+                if args.codon:
+                    if seq_pair.codon_pos != 3 or i < 2:
+                        pass
+                    else:
+                        seq_pair.update_gcodons()
+                        seq_pair.update_mcodons()
                 seq_pair.incr_all()
                 seq_pair.incr_mrna()
             elif rg != rm:  #residue in both, but edited
-                pos = seq_pair.index_nuc() + 1
-                cpos = seq_pair.index_position()
-                gnuc = seq_pair.lookup_gnuc()
-                mnuc = seq_pair.lookup_mnuc()
-                gcod = seq_pair.lookup_gcodon()
-                mcod = seq_pair.lookup_mcodon()
-                gaa = seq_pair.lookup_gaa()
-                maa = seq_pair.lookup_maa()
-                scr = (Blosum62(gaa, maa).sub_score())
-                edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr])
+                if args.basic:
+                    pos = seq_pair.index_nuc() + 1
+                    cpos = seq_pair.index_position()
+                    gnuc = seq_pair.lookup_gnuc()
+                    mnuc = seq_pair.lookup_mnuc()
+                    gcod = seq_pair.lookup_gcodon()
+                    mcod = seq_pair.lookup_mcodon()
+                    gaa = seq_pair.lookup_gaa()
+                    maa = seq_pair.lookup_maa()
+                    scr = (Blosum62(gaa, maa).sub_score())
+                    edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr])
+                if args.codon:
+                    if seq_pair.codon_pos != 3 or i < 2:
+                        pass
+                    else:
+                        seq_pair.update_gcodons()
+                        seq_pair.update_mcodons()
+                if args.edits:
+                    seq_pair.update_transdict()
                 seq_pair.incr_all()
                 seq_pair.incr_mrna()
 
