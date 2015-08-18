@@ -48,6 +48,7 @@ def sanitize(seq):
     return nseq
 
 def calc_gc(string):
+    """calculates GC content of a string"""
     GC = 0
     AT = 0
     for char in string:
@@ -60,4 +61,15 @@ def calc_gc(string):
     gc_content = (GC/float(GC + AT)) * 100
     return gc_content
 
-
+def build_seqdict(infile, seqdict):
+    """Builds a dictionary of header/sequence key value pairs"""
+    with open(infile,'U') as f:
+        for line in nonblank_lines(f):
+            line = line.strip('\n')
+            if line.startswith(">"):
+                line = line.strip(">")
+                ID = line
+                seqdict[ID] = ''
+            else:
+                seqdict[ID] += line
+    return seqdict
