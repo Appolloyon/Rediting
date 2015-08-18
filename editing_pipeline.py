@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import re
-import sys
+#import sys
 import argparse
 
 from classes import CodonPair
@@ -38,6 +38,7 @@ args = parser.parse_args()
 
 if args.basic:
     m_out = "master_editing_out.csv"
+    m_o = open(m_out,'w')
 
 for infile in args.infiles:
     name = infile.split('.')[0]
@@ -83,58 +84,59 @@ for infile in args.infiles:
     new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
     new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
 
-### total_editing.py ###
-
     if args.basic:
         edit_list = []
+    if args.edits:
+        num_edited_res = 0
 
-    for i, (rg, rm) in enumerate(zip(newgseq, newmseq)):  #compare matching regions
-            if rg == '-' and rm != '-':  #insertion in mRNA
-                seq_pair.incr_mrna()
-            elif rm == '-' and rg != '-':  #insertion in DNA
-                seq_pair.incr_all()
-            elif rg == rm:  #residue in both, but no edits
-                if args.codon:
-                    if seq_pair.codon_pos != 3 or i < 2:
-                        pass
-                    else:
-                        seq_pair.update_gcodons()
-                        seq_pair.update_mcodons()
-                seq_pair.incr_all()
-                seq_pair.incr_mrna()
-            elif rg != rm:  #residue in both, but edited
-                if args.basic:
-                    pos = seq_pair.index_nuc() + 1
-                    cpos = seq_pair.index_position()
-                    gnuc = seq_pair.lookup_gnuc()
-                    mnuc = seq_pair.lookup_mnuc()
-                    gcod = seq_pair.lookup_gcodon()
-                    mcod = seq_pair.lookup_mcodon()
-                    gaa = seq_pair.lookup_gaa()
-                    maa = seq_pair.lookup_maa()
-                    scr = (Blosum62(gaa, maa).sub_score())
-                    edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr])
-                if args.codon:
-                    if seq_pair.codon_pos != 3 or i < 2:
-                        pass
-                    else:
-                        seq_pair.update_gcodons()
-                        seq_pair.update_mcodons()
-                if args.edits:
-                    seq_pair.update_transdict()
-                seq_pair.incr_all()
-                seq_pair.incr_mrna()
+    for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):  #compare matching regions
+        if rg == '-' and rm != '-':  #insertion in mRNA
+            seq_pair.incr_mrna()
+        elif rm == '-' and rg != '-':  #insertion in DNA
+            seq_pair.incr_all()
+        elif rg == rm:  #residue in both, but no edits
+            if args.codon:
+                if seq_pair.codon_pos != 3 or i < 2:
+                    pass
+                else:
+                    seq_pair.update_gcodons()
+                    seq_pair.update_mcodons()
+            seq_pair.incr_all()
+            seq_pair.incr_mrna()
+        elif rg != rm:  #residue in both, but edited
+            if args.basic:
+                pos = seq_pair.index_nuc() + 1
+                cpos = seq_pair.index_position()
+                gnuc = seq_pair.lookup_gnuc()
+                mnuc = seq_pair.lookup_mnuc()
+                gcod = seq_pair.lookup_gcodon()
+                mcod = seq_pair.lookup_mcodon()
+                gaa = seq_pair.lookup_gaa()
+                maa = seq_pair.lookup_maa()
+                scr = (Blosum62(gaa, maa).sub_score())
+                edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr])
+            if args.codon:
+                if seq_pair.codon_pos != 3 or i < 2:
+                    pass
+                else:
+                    seq_pair.update_gcodons()
+                    seq_pair.update_mcodons()
+            if args.edits:
+                seq_pair.update_transdict()
+                num_edited_res += 1
+            seq_pair.incr_all()
+            seq_pair.incr_mrna()
 
-        out1 = name + "_out.csv"
+    if args.basic:
         subscore = 0
         num_aaedits = 0
         num_fpos = 0
-        with open(out1,'w') as o1:
-            o1.write("position,codon position,genome base,mRNA base,genome codon,\
-mRNA codon,genome amino acid,mRNA amino acid,substitution score")
-            o1.write("\n")
+        with open(b_out,'w') as b_o:
+            b_o.write("position,codon position,genome base,mRNA base,genome codon,\
+               mRNA codon,genome amino acid,mRNA amino acid,substitution score")
+            b_o.write("\n")
             for P, C, GN, MN, GC, MC, GA, MA, S in edit_list:
-                o1.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
+                b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
                 subscore += int(S)
                 if GA != MA:
                     num_aaedits += 1
@@ -142,9 +144,9 @@ mRNA codon,genome amino acid,mRNA amino acid,substitution score")
                 if C == 1 or C == 2:
                     num_fpos += 1
 
-        gcb = calc_gc(newgseq)
-        gca = calc_gc(newmseq)
-        seqlength = len(newmseq)
+        gcb = calc_gc(new_gen_seq)
+        gca = calc_gc(new_rna_seq)
+        seqlength = len(new_rna_seq)
         aalength = seqlength/3
         numedits = float(len(edit_list))
         seqedits = (numedits/seqlength) * 100
@@ -152,78 +154,38 @@ mRNA codon,genome amino acid,mRNA amino acid,substitution score")
         editscore = subscore/numedits
         fpos = (num_fpos/numedits) * 100
 
-        o2.write("%s,%.2f,%.2f,%s,%s,%.2f,%.2f,%.2f,%.2f" % (gene,gcb,gca,seqlength,\
+        m_o.write("%s,%.2f,%.2f,%s,%s,%.2f,%.2f,%.2f,%.2f" % (gene,gcb,gca,seqlength,\
                 aalength,seqedits,fpos,aaedits,editscore) + "\n")
 
-### total_editing.py ###
+    if args.codon:
+        with open(c_out,'w') as c_o:
+            c_o.write("amino acid,codon,genome usage,mRNA usage")
+            c_o.write("\n")
+            # loop through both dictionaries
+            for k1, k2 in zip(seq_pair.gnuc_aa_dict, seq_pair.mnuc_aa_dict):
+                c_o.write(k1)
+                for k3, k4 in zip(seq_pair.gnuc_aa_dict[k1].keys(),\
+                        seq_pair.mnuc_aa_dict[k2].keys()):
+                    c_o.write(',' + k3 + ',' + str(seq_pair.gnuc_aa_dict[k1][k3])\
+                            + ',' + str(seq_pair.mnuc_aa_dict[k1][k4]) + "\n")
+                c_o.write("\n")
 
-
-### gene_codon_pref.py ###
-
-for i, (rg, rm) in enumerate(zip(newgseq, newmseq)):  #compare matching regions
-        #print i
-        #print "codon position" + '' + str(seq_pair.codon_pos)
-        if seq_pair.codon_pos != 3 or i < 2:  #only want codons once, only want full codons in both
-            seq_pair.incr_all()
-            seq_pair.incr_mrna()
-        else:
-            if rg == '-' and rm != '-':  #insertion in mRNA
-                seq_pair.incr_mrna()
-            elif rm == '-' and rg != '-':  #insertion in DNA
-                seq_pair.incr_all()
-            else:  #residue in both
-                seq_pair.update_gcodons()
-                seq_pair.update_mcodons()
-                seq_pair.incr_all()
-                seq_pair.incr_mrna()
-
-    out = name + "_codons.csv"
-    with open(out,'w') as o:
-        o.write("amino acid,codon,genome usage,mRNA usage")
-        o.write("\n")
-        for k1, k2 in zip(seq_pair.gnuc_aa_dict, seq_pair.mnuc_aa_dict):  #loop through both dictionaries
-            o.write(k1)
-            for k3, k4 in zip(seq_pair.gnuc_aa_dict[k1].keys(), seq_pair.mnuc_aa_dict[k2].keys()):
-                o.write(',' + k3 + ',' + str(seq_pair.gnuc_aa_dict[k1][k3]) + ',' + str(seq_pair.mnuc_aa_dict[k1][k4]) + "\n")
-            o.write("\n")
-
-### gene_codon_pref.py ###
-
-
-### editing_details.py ###
-
-
-edited_res = 0
-        for i, (res1, res2) in enumerate(zip(newseq1, newseq2)):
-            if (res1 == '-' or res2 == '-') or res1 == res2:
-                edited_res += 0
-            elif res1 != res2:
-                edited_res += 1
-            else:
-                pass
-
-        transdict = base_transition(newseq2, newseq1)
-        DNA_gc = calc_gc(newseq2)
-        mRNA_gc = calc_gc(newseq1)
-
-        o.write("Total number of unequal residues: {}\n".format(edited_res))
-        o.write("Number of transitions: \n")
-        o.write("A to T: {}\n".format(transdict.get('a_t')))
-        o.write("A to G: {}\n".format(transdict.get('a_g')))
-        o.write("A to C: {}\n".format(transdict.get('a_c')))
-        o.write("T to A: {}\n".format(transdict.get('t_a')))
-        o.write("T to G: {}\n".format(transdict.get('t_g')))
-        o.write("T to C: {}\n".format(transdict.get('t_c')))
-        o.write("G to A: {}\n".format(transdict.get('g_a')))
-        o.write("G to T: {}\n".format(transdict.get('g_t')))
-        o.write("G to C: {}\n".format(transdict.get('g_c')))
-        o.write("C to A: {}\n".format(transdict.get('c_a')))
-        o.write("C to T: {}\n".format(transdict.get('c_t')))
-        o.write("C to G: {}\n".format(transdict.get('c_g')))
-        o.write("GC content before editing: {}\n".format(DNA_gc))
-        o.write("GC content after editing: {}\n".format(mRNA_gc))
-
-### editing_details.py ###
+    if args.edits:
+        with open(e_out,'w') as e_o:
+            e_o.write("Total number of unequal residues: {}\n".format(num_edited_res))
+            e_o.write("Number of transitions: \n")
+            e_o.write("A to T: {}\n".format(seq_pair.transition_dict.get('a_t')))
+            e_o.write("A to G: {}\n".format(seq_pair.transition_dict.get('a_g')))
+            e_o.write("A to C: {}\n".format(seq_pair.transition_dict.get('a_c')))
+            e_o.write("T to A: {}\n".format(seq_pair.transition_dict.get('t_a')))
+            e_o.write("T to G: {}\n".format(seq_pair.transition_dict.get('t_g')))
+            e_o.write("T to C: {}\n".format(seq_pair.transition_dict.get('t_c')))
+            e_o.write("G to A: {}\n".format(seq_pair.transition_dict.get('g_a')))
+            e_o.write("G to T: {}\n".format(seq_pair.transition_dict.get('g_t')))
+            e_o.write("G to C: {}\n".format(seq_pair.transition_dict.get('g_c')))
+            e_o.write("C to A: {}\n".format(seq_pair.transition_dict.get('c_a')))
+            e_o.write("C to T: {}\n".format(seq_pair.transition_dict.get('c_t')))
+            e_o.write("C to G: {}\n".format(seq_pair.transition_dict.get('c_g')))
 
 """
 Program Outline:
