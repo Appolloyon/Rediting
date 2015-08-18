@@ -4,9 +4,9 @@ import re
 import sys
 import argparse
 
-from classes import SeqPair
+from classes import CodonPair
 from matrices import Blosum62
-from functions import gulp, compare_seqs, nonblank_lines, sanitize, calc_gc
+from functions import gulp, compare_seqs, nonblank_lines, sanitize, calc_gc, build_seqdict
 
 parser = argparse.ArgumentParser(
     description = """Calculates editing stats between genomic/RNA sequences""",
@@ -23,6 +23,10 @@ parser = argparse.ArgumentParser(
 parser.add_argument('infiles', nargs='+', help='list of aligned infiles')
 parser.add_argument('-r', '--RNA', help='unique string present in RNA sequence header')
 parser.add_argument('-g', '--genomic', help='unique string present in genomic sequence headers')
+parser.add_argument('-n', '--numequal', help='number of equal residues out of "size"\
+        to signify start/end of alignment', default=7)
+parser.add_argument('-s', '--size', help='number of residues to compare to determine start/end\
+        of an alignment', default=9)
 parser.add_argument('-b', '--basic', action='store_true', help='calculate only basic editing stats')
 parser.add_argument('-e', '--edits', action='store_true', help='summarize editing types')
 parser.add_argument('-c', '--codon', action='store_true', help='summarize codon usage difference')
@@ -32,4 +36,47 @@ args = parser.parse_args()
 #    print args.description
 #    sys.exit("please specify one of at least basic, edits, or codon")
 
+if args.basic:
+    m_out = "master_editing_out.csv"
 
+for infile in args.infiles:
+    name = infile.split('.')[0]
+    gene = "pass"
+
+    if args.basic:
+        b_out = name + "_basic_editing.csv"
+    if args.edits:
+        e_out = name + "_editing_types.txt"
+    if args.codon:
+        c_out = name + "_codon_preference.csv"
+
+    seqdict = {}
+    build_seqdict(infile,seqdict)
+
+    rna_string = str(args.RNA)
+    gen_string = str(args.genomic)
+    for k in seqdict.keys():
+        if re.search(rna_string,k):
+            rna_seq = seqdict.get(k)
+        elif re.search(gen_string,k):
+            gen_seq = seqdict.get(k)
+
+    san_rna_seq = sanitize(rna_seq)
+    san_gen_seq = sanitize(gen_seq)
+    seq_pair = CodonPair(san_rna_seq,san_gen_seq,name)
+
+
+
+
+
+"""
+Program Outline:
+    For each infile:
+        Make all necessary outfiles
+        Parse the infile and build the seqdict
+        Identify which sequences are the mrna and genomic ones
+        Make necessary objects
+        Iterate through sequences and populate sequence objects as necessary
+        Write all information to outfiles
+    Done
+"""
