@@ -4,7 +4,7 @@ import re
 #import sys
 import argparse
 
-from classes import CodonPair
+from classes import SeqPair
 from matrices import Blosum62
 from functions import gulp, compare_seqs, nonblank_lines, sanitize, calc_gc, build_seqdict
 
@@ -42,7 +42,7 @@ if args.basic:
 
 for infile in args.infiles:
     name = infile.split('.')[0]
-    gene = "pass"
+    gene = name.split('_')[1]
 
     if args.basic:
         b_out = name + "_basic_editing.csv"
@@ -64,20 +64,20 @@ for infile in args.infiles:
 
     san_rna_seq = sanitize(rna_seq)
     san_gen_seq = sanitize(gen_seq)
-    seq_pair = CodonPair(san_rna_seq,san_gen_seq,name)
+    seq_pair = SeqPair(san_rna_seq,san_gen_seq,name)
 
     num_equal = int(args.numequal)
     size = int(args.size)
     i = 0
     j = 0
-    while not compare_seqs((gulp(rna_seq, i, size)),\
+    while not compare_seqs((gulp(rna_seq, i, size)),
             (gulp(gen_seq, i, size)), num_equal):
         if gen_seq[i] != '-':
             seq_pair.incr_all()
         if rna_seq[i] != '-':
             seq_pair.incr_mrna()
         i += 1
-    while not compare_seqs((gulp(rna_seq[::-1], j, size)),\
+    while not compare_seqs((gulp(rna_seq[::-1], j, size)),
             (gulp(gen_seq[::-1], j, size)), num_equal):
         j += 1
 
