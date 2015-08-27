@@ -3,7 +3,7 @@
 import re
 import argparse
 #from indelclass import IndelPair
-from functions import gulp,nonblank_lines,sanitize
+from functions import nonblank_lines # sanitize
 
 parser = argparse.ArgumentParser(
     description = "Calculates position of indels against a ref sequence",
@@ -19,7 +19,7 @@ for infile in args.infiles:
     name = infile.rstrip('.afa')
     with open(infile,'U') as i:
         seqdict = {}
-        for line in nonblank_lines(f):
+        for line in nonblank_lines(i):
             line = line.strip('\n')
             if line.startswith(">"):
                 line = line.lstrip(">")
@@ -34,8 +34,8 @@ for infile in args.infiles:
         else:
             qseq = seqdict.get(k)
 
-    san_rseq = sanitize(rseq)
-    san_qseq = sanitize(qseq)
+    #san_rseq = sanitize(rseq)
+    #san_qseq = sanitize(qseq)
 
     #seq_pair = IndelPair(san_rseq, san_qseq, name)
     ref_counter = 1
@@ -53,8 +53,12 @@ for infile in args.infiles:
     new_rseq = rseq[i:(len(rseq)-j)]
     new_qseq = qseq[i:(len(qseq)-j)]
 
+    insert_list = []
     insert_dict = {}
+    deletion_list = []
     deletion_dict = {}
+
+    prev_del = 0 # initialize a counter for the previous deletion
 
     for i,(raa,qaa) in enumerate(zip(new_rseq,new_qseq)):
         if raa == '-' and qaa != '-':  # insertion in query
@@ -63,9 +67,32 @@ for infile in args.infiles:
                 insert_dict[rpos] += 1
             else:
                 insert_dict[rpos] = 1
-            ref_counter += 1
+                insert_list.append(rpos)
         elif raa != '-' and qaa == '-': # deletion in query
             rpos = ref_counter
-            deletion_dict[rpos] = 1
+            if abs(rpos - prev_del) == 1:
+                key = deletion_list[(len(deletion_list)-1)]
+                deletion_dict[key] += 1
+                prev_del = rpos
+            else:
+                deletion_dict[rpos] = 1
+                deletion_list.append(rpos)
+                prev_del = rpos
+            ref_counter += 1
         else: # residue in both
             ref_counter += 1
+
+    out_insert = name + "_inserts.csv"
+    out_deletion = name + "_deletions.csv"
+
+    with open(out_insert,'w') as o1, open(out_deletion,'w') as o2:
+        #o1.write("organism,position,number" + '\n' + '\n')
+        #o2.write("organism,position,number" + '\n' + '\n')
+        for k in insert_list:
+            v = insert_dict[k]
+            o1.write("%s,%s,%s" % (name,k,v))
+            o1.write('\n')
+        for k in deletion_list:
+            v = deletion_dict[k]
+            o2.write("%s,%s,%s" % (name,k,v))
+            o2.write('\n')
