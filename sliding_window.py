@@ -11,15 +11,12 @@ Changelog:
 Created June 25, 2015
 """
 
-#import os
-#import sys
 import re
-import math
 import argparse
 import matplotlib.pyplot as plt
 
-from functions import gulp, compare_seqs, nonblank_lines, sanitize, calc_gc,\
-        build_seqdict, calc_percent, get_indices, calc_mean, calc_pearson, calc_tvalue
+from functions import gulp, compare_seqs, build_seqdict, calc_percent,\
+        get_indices, calc_mean, calc_pearson, calc_tvalue
 
 parser = argparse.ArgumentParser(
     description = """Compares editing frequency between aligned genomic/RNA

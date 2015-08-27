@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
 import re
-#import sys
 import argparse
 
 from classes import SeqPair
 from matrices import Blosum62
-from functions import gulp, compare_seqs, nonblank_lines, sanitize, calc_gc, build_seqdict
+from functions import gulp, compare_seqs, sanitize, calc_gc, build_seqdict
 
 parser = argparse.ArgumentParser(
     description = """Calculates editing stats between genomic/RNA sequences""",
