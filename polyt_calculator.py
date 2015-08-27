@@ -10,7 +10,9 @@ Last Updated: January 6, 2015
 
 import re
 import argparse
+
 from classes import SeqPair
+from functions import gulp, compare_seqs, sanitize, build_seqdict, polyT, ispolyTpercent
 
 parser = argparse.ArgumentParser(
     description = """Calculates RNA editing in genomic poly-T tracks""",
@@ -21,136 +23,54 @@ parser = argparse.ArgumentParser(
     csv values for various pertinent stats.""")
 parser.add_argument('-p', '--percent', help='percent cutoff for polyT')
 parser.add_argument('infiles', nargs='+', help='list of aligned infiles')
+parser.add_argument('-r', '--RNA', help='unique string present in RNA sequence header')
+parser.add_argument('-g', '--genomic', help='unique string present in genomic sequence header')
+parser.add_argument('-n', '--numequal', help='number of equal residues out of "size"\
+        to signify start/end of alignment', default=7)
+parser.add_argument('-s', '--size', help='number of residues to compare to determine start/end\
+        of an alignment', default=9)
 args = parser.parse_args()
 
-def gulp(string, start, gulp_size):
-    """get substrings of a string"""
-    gulpstr = ''
-    chars = string[start:start+gulp_size]
-    for char in chars:
-        gulpstr += char
-    return gulpstr
-
-def compare_seqs(seq1, seq2):
-    """compare substrings to determine start of alignment"""
-    equal = 0
-    for i, (r1, r2) in enumerate(zip(seq1, seq2)):
-        if i == 0:  #terminal residue
-            if r1 != '-' and r2 != '-':  #neither should be a gap
-                if r1 == r2:
-                    equal += 1
-                else:
-                    pass
-            else:
-                return False
-        else:  #other residues
-            if r1 == r2:
-                equal += 1
-            else:
-                pass
-    if equal >= 7:  #arbitrary threshold
-        return True
-    else:
-        return False
-
-def nonblank_lines(f):
-    """skip blank lines"""
-    for l in f:
-        line = l.strip('\n')
-        if line:
-            yield line
-
-def sanitize(seq):
-    """remove gap characters"""
-    nseq = ''
-    for char in seq:
-        if char == '-':
-            pass
-        else:
-            nseq += char
-    return nseq
-
-def polyT(string):
-    """find stretches of 4 or more T's in a row"""
-    i = 0
-    while i <= len(string) - 4:
-        polyt = gulp(string, i, 4)
-        if polyt == 'TTTT':
-            return True
-        else:
-            pass
-        i += 1
-
-def polyTpercent(string, percent):
-    """find stretches of X% T"""
-    tcounter = 0
-    for char in string:
-        if char == 'T':
-            tcounter += 1
-    if tcounter >= (percent/10):
-        return True
-    else:
-        pass
-
-def ispolyTpercent(plist):
-    """check list elements for at least one polyT stretch"""
-    for e in plist:
-        if polyTpercent(e, percent):
-            return True
-        else:
-            pass
-    return False
-
-
 for infile in args.infiles:
-    name = infile.strip('.afa')
+    name = infile.split('.')[0]
     gene = name.split('_')[1]
-    with open(infile,'U') as f:
-        seqdict={}
-        for line in nonblank_lines(f):
-            line = line.strip('\n')
-            if line.startswith(">"):
-                line = line.strip(">")
-                ID = line
-                seqdict[ID] = ''
-            else:
-                seqdict[ID] += line
 
+    seqdict = {}
+    build_seqdict(infile,seqdict)
+
+    rna_string = str(args.RNA)
+    gen_string = str(args.genomic)
     for k in seqdict.keys():
-        if re.search('mrna',k) or re.search('mRNA',k) or re.search('mRNAs',k):
-            mseq = seqdict.get(k)
-        else:
-            gseq = seqdict.get(k)
+        if re.search(rna_string,k):
+            rna_seq = seqdict.get(k)
+        elif re.search(gen_string,k):
+            gen_seq = seqdict.get(k)
 
-    smseq = sanitize(mseq)
-    sgseq = sanitize(gseq)
-    #print "smseq"
-    #print smseq
-    #print "sgseq"
-    #print sgseq
+    san_rna_seq = sanitize(rna_seq)
+    san_gen_seq = sanitize(gen_seq)
 
-    seq_pair = SeqPair(smseq, sgseq, name)  #sanitized sequences for direct comparison
-    seq_pair2 = SeqPair(smseq, sgseq, name)
+    seq_pair = SeqPair(san_rna_seq, san_gen_seq, name)  #sanitized sequences for direct comparison
+    seq_pair2 = SeqPair(san_rna_seq, san_gen_seq, name)
 
+    num_equal = int(args.numequal)
+    size = int(args.size)
     i = 0
-    while not compare_seqs((gulp(mseq, i, 9)), (gulp(gseq, i, 9))):  #start of alignment
-        if gseq[i] != '-':
+    j = 0
+    while not compare_seqs((gulp(rna_seq, i, size)),
+            (gulp(gen_seq, i, size)), num_equal):  #start of alignment
+        if gen_seq[i] != '-':
             seq_pair.incr_all()
             seq_pair2.incr_all()
-        if mseq[i] != '-':
+        if rna_seq[i] != '-':
             seq_pair.incr_mrna()
             seq_pair2.incr_mrna()
         i += 1
-    j = 0
-    while not compare_seqs((gulp(mseq[::-1], j, 9)), (gulp(gseq[::-1], j, 9))):  #end of alignment
+    while not compare_seqs((gulp(rna_seq[::-1], j, size)),
+            (gulp(gen_seq[::-1], j, size)), num_equal):  #end of alignment
         j += 1
 
-    newmseq = mseq[i:(len(mseq)-j)]  #only compare regions that align
-    newgseq = gseq[i:(len(gseq)-j)]
-    #print "newmseq"
-    #print newmseq
-    #print "newgseq"
-    #print newgseq
+    newmseq = rna_seq[i:(len(rna_seq)-j)]  #only compare regions that align
+    newgseq = gen_seq[i:(len(gen_seq)-j)]
 
     edit_list = []
 
