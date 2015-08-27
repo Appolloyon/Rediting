@@ -119,12 +119,14 @@ for infile in args.infiles:
             testseq2 = []
             for y in range(10):
                 try:
-                    testseq2.append(gulp(newgseq, y-i, 10))
+                    testseq2.append(gulp(newgseq, i-y, 10))
                 except:
                     pass
-            if ispolyTpercent(testseq2):
+            print i
+            print testseq2
+            if ispolyTpercent(testseq2, int(args.percent)):
                 #print i
-                #print testseq2
+                print testseq2
                 pos = seq_pair2.index_nuc() + 1
                 cpos = seq_pair2.index_position()
                 gnuc = seq_pair2.lookup_gnuc()
