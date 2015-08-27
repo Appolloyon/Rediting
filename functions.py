@@ -109,6 +109,7 @@ def calc_mean(values):
     return mean
 
 def calc_pearson(xvalues, yvalues, xmean, ymean):
+    """Calculates a pearson correlation value"""
     N = len(xvalues)
     num = 0.0
     xdenom = 0.0
@@ -121,5 +122,37 @@ def calc_pearson(xvalues, yvalues, xmean, ymean):
     return num/denom
 
 def calc_tvalue(PC, N):
+    """Calculates a t value for a given pearson coefficient"""
     return abs((PC * math.sqrt(N-2))/(math.sqrt(1-(PC**2))))
+
+def polyT(string):
+    """find stretches of 4 or more T's in a row"""
+    i = 0
+    while i <= len(string) - 4:
+        polyt = gulp(string, i, 4)
+        if polyt == 'TTTT':
+            return True
+        else:
+            pass
+        i += 1
+
+def polyTpercent(string, percent):
+    """find stretches of X% T"""
+    tcounter = 0
+    for char in string:
+        if char == 'T':
+            tcounter += 1
+    if tcounter >= (percent/10):
+        return True
+    else:
+        pass
+
+def ispolyTpercent(plist, percent):
+    """check list elements for at least one polyT stretch"""
+    for e in plist:
+        if polyTpercent(e, percent):
+            return True
+        else:
+            pass
+    return False
 
