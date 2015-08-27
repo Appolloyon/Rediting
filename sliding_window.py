@@ -11,8 +11,8 @@ Changelog:
 Created June 25, 2015
 """
 
-import os
-import sys
+#import os
+#import sys
 import re
 import math
 import argparse
@@ -131,20 +131,27 @@ for infile in args.infiles:
             total_edits += edit
 
     percent_above_average_edits = (edits_above_average/total_edits) * 100
-    print percent_above_average_edits
-
+    #print percent_above_average_edits
     PC = calc_pearson(edit_list, identity_list, edit_mean, identity_mean)
-    print PC
-    print calc_tvalue(PC, len(edit_list))
+    #print PC
+    tvalue = calc_tvalue(PC, len(edit_list))
+    #print tvalue
 
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
+
     ax1.plot([e for e in edit_list], color='b')
-    ax1.plot([mean for mean in average_list], color='k')
+    ax1.plot([mean for mean in average_list], linestyle='--', color='k')
     ax2.plot([i for i in identity_list], color='m')
+
     plt.title('%s' % (name))
     ax1.set_xlabel('sliding window position')
-    ax1.set_ylabel('% edits', color='b')
-    ax2.set_ylabel('sequence identity', color='m')
+    ax1.set_ylabel('percent edited residues in RNA', color='b')
+    ax2.set_ylabel('percent sequence identity to reference', color='m')
+
+    textstr = "percent above average = %.2f\npearson's correlation = %.2f\ntvalue = %2.f"%(percent_above_average_edits,PC,tvalue)
+    props = dict(boxstyle='round', facecolor='white', alpha=0.75)
+    ax1.text(0.02, 0.98, textstr, transform=ax1.transAxes, fontsize=8, verticalalignment='top', bbox=props)
+
     plt.savefig('%s.pdf' % (name))
     plt.close()
