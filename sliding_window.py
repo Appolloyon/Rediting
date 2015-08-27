@@ -43,7 +43,7 @@ parser.add_argument('-n', '--numequal', help='number of equal residues out of "s
         to signify start/end of alignment', default=7)
 parser.add_argument('-s', '--size', help='number of residues to compare to determine\
         start/end of an alignment', default=9)
-parser.add_argument('-w', '--window_size', help='size of sliding window', default=30)
+parser.add_argument('-w', '--window_size', help='size of sliding window', default=60)
 args = parser.parse_args()
 
 window_size = float(args.window_size)
@@ -134,7 +134,9 @@ for infile in args.infiles:
     #print percent_above_average_edits
     PC = calc_pearson(edit_list, identity_list, edit_mean, identity_mean)
     #print PC
-    tvalue = calc_tvalue(PC, len(edit_list))
+    num_obs = len(edit_list)
+    #print num_obs
+    tvalue = calc_tvalue(PC, num_obs)
     #print tvalue
 
     fig, ax1 = plt.subplots()
@@ -149,7 +151,7 @@ for infile in args.infiles:
     ax1.set_ylabel('percent edited residues in RNA', color='b')
     ax2.set_ylabel('percent sequence identity to reference', color='m')
 
-    textstr = "percent above average = %.2f\npearson's correlation = %.2f\ntvalue = %2.f"%(percent_above_average_edits,PC,tvalue)
+    textstr = "percent above average = %.2f\npearson's correlation = %.2f\nnumber of windows = %d\ntvalue = %2.f"%(percent_above_average_edits,PC,num_obs,tvalue)
     props = dict(boxstyle='round', facecolor='white', alpha=0.75)
     ax1.text(0.02, 0.98, textstr, transform=ax1.transAxes, fontsize=8, verticalalignment='top', bbox=props)
 
