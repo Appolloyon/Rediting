@@ -18,6 +18,9 @@ import math
 import argparse
 import matplotlib.pyplot as plt
 
+from functions import gulp, compare_seqs, nonblank_lines, sanitize, calc_gc,\
+        build_seqdict, calc_percent, get_indices, calc_mean, calc_pearson, calc_tvalue
+
 parser = argparse.ArgumentParser(
     description = """Compares editing frequency between aligned genomic/RNA
         sequences and a reference""",
@@ -41,191 +44,107 @@ parser.add_argument('-n', '--numequal', help='number of equal residues out of "s
 parser.add_argument('-s', '--size', help='number of residues to compare to determine\
         start/end of an alignment', default=9)
 parser.add_argument('-w', '--window_size', help='size of sliding window', default=30)
+args = parser.parse_args()
 
-window_size = float(sys.argv[1])
-file_list = sys.argv[2:]
+window_size = float(args.window_size)
 
-def nonblank_lines(f):
-    for l in f:
-        line = l.strip('\n')
-        if line:
-            yield line
+for infile in args.infiles:
+    #name = ((os.path.basename((file)).strip(".afa")))
+    name = infile.split('.')[0]
+    gene = name.split('_')[1]
 
-def compare_seqs(seq1, seq2):
-    """compare substrings to determine start of alignment"""
-    equal = 0
-    for i, (r1, r2) in enumerate(zip(seq1, seq2)):
-        if i == 0:  #terminal residue
-            if r1 != '-' and r2 != '-':  #neither should be a gap
-                if r1 == r2:
-                    equal += 1
-                else:
-                    pass
-            else:
-                return False
-        else:  #other residues
-            if r1 == r2:
-                equal += 1
-            else:
-                pass
-    if equal >= 7:  #arbitrary threshold
-        return True
-    else:
-        return False
+    seqdict = {}
+    build_seqdict(infile,seqdict)
 
-def calc_percent(string, start, end, window_size):
-    chars = string[start:end]
-    sum = 0.0
-    w = window_size
-    for char in chars:
-        sum += float(char)
-    percent = float((sum/w)*100)
-    return percent
+    rna_string = str(args.RNA)
+    gen_string = str(args.genomic)
+    for k in seqdict.keys():
+        if re.search(rna_string,k):
+            rna_seq = seqdict.get(k)
+        elif re.search(gen_string,k):
+            gen_seq = seqdict.get(k)
+        else:
+            ref_seq = seqdict.get(k)
 
-def get_indices(string, window_size):
-    indices = []
-    w = int(window_size)
-    for i in range(len(string) - w):
+    num_equal = int(args.numequal)
+    size = int(args.size)
+    i = 0
+    j = 0
+    while not compare_seqs((gulp(rna_seq, i, size)),
+            (gulp(gen_seq, i, size)), num_equal):  #start of alignment
+        i += 1
+    while not compare_seqs((gulp(rna_seq[::-1], j, size)),
+            (gulp(gen_seq[::-1], j, size)), num_equal):  #end of alignment
+        j += 1
+
+    new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
+    new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
+    new_ref_seq = ref_seq[i:(len(ref_seq)-j)]
+
+    # calculates % edits between genomic and RNA sequences
+    compstr1 = ''
+    for i, (res1, res2) in enumerate(zip(new_rna_seq, new_gen_seq)):
+        if (res1 == '-' or res2 == '-') or res1 == res2:
+            compstr1 += str(0)
+        elif res1 != res2:
+            compstr1 += str(1)
+        else:
+            pass
+
+    edit_list = []
+    for start,end in get_indices(compstr1, window_size):
         try:
-            index_low = i
-            index_high = i + w
-            indices.append([index_low, index_high])
+            edit_list.append(calc_percent(compstr1, start, end, window_size))
         except(ValueError,IndexError):
             pass
-    return indices
 
-def gulp(string, start, gulp_size):
-    gulpstr = ''
-    chars = string[start:start+gulp_size]
-    for char in chars:
-        gulpstr += char
-    return gulpstr
+    # calculates % sequence identity beween genomic and reference sequences
+    compstr2 = ''
+    for i, (res1, res2) in enumerate(zip(new_gen_seq, new_ref_seq)):
+        if res1 == res2:
+            compstr2 += str(1)
+        elif res1 != res2:
+            compstr2 += str(0)
+        else:
+            pass
 
-def calc_mean(values):
-    sum = 0.0
-    for value in values:
-        value = float(value)
-        sum += value
-    mean = sum/(float(len(values)))
-    return mean
+    identity_list = []
+    for start,end in get_indices(compstr2, window_size):
+        try:
+            identity_list.append(calc_percent(compstr2, start, end, window_size))
+        except(ValueError,IndexError):
+            pass
 
-def calc_pearson(xvalues, yvalues, xmean, ymean):
-    N = len(xvalues)
-    num = 0.0
-    xdenom = 0.0
-    ydenom = 0.0
-    for i in range(N):
-        num += ((xvalues[i] - xmean) * (yvalues[i] - ymean))
-        xdenom += ((xvalues[i] - xmean)**2)
-        ydenom += ((yvalues[i] - ymean)**2)
-    denom = (math.sqrt(xdenom)) * (math.sqrt(ydenom))
-    return num/denom
+    edit_mean = calc_mean(edit_list)
+    average_list = []
+    for i in range(len(edit_list)):
+        average_list.append(edit_mean)
+    identity_mean = calc_mean(identity_list)
 
-def calc_tvalue(PC, N):
-    return abs((PC * math.sqrt(N-2))/(math.sqrt(1-(PC**2))))
+    edits_above_average = 0.0
+    total_edits = 0.0
+    for edit in edit_list:
+        if edit > edit_mean:
+            total_edits += edit
+            edits_above_average += edit
+        else:
+            total_edits += edit
 
+    percent_above_average_edits = (edits_above_average/total_edits) * 100
+    print percent_above_average_edits
 
-for file in file_list:
-    name = ((os.path.basename((file)).strip(".afa")))
-    with open(file,'U') as f:
-        seqdict={}
-        for curline in nonblank_lines(f):
-            curline = curline.strip('\n')
-            if curline.startswith(">"):
-                curline = curline.strip(">")
-                ID = curline
-                seqdict[ID] = ''
-            else:
-                seqdict[ID] += curline
+    PC = calc_pearson(edit_list, identity_list, edit_mean, identity_mean)
+    print PC
+    print calc_tvalue(PC, len(edit_list))
 
-        for k in seqdict.keys():
-            if re.search('mRNA',k):
-                seq1 = seqdict.get(k)
-            elif re.search('Emiliania',k):
-                seq3 = seqdict.get(k)
-            else:
-                seq2 = seqdict.get(k)
-
-        i = 0
-        while not compare_seqs((gulp(seq1, i, 9)), (gulp(seq2, i, 9))):  #start of alignment
-            i += 1
-        print i
-        j = 0
-        while not compare_seqs((gulp(seq1[::-1], j, 9)), (gulp(seq2[::-1], j, 9))):  #end of alignment
-            j += 1
-        print j
-
-        newseq1 = seq1[i:(len(seq1)-j)]
-        newseq2 = seq2[i:(len(seq2)-j)]
-        newseq3 = seq3[i:(len(seq3)-j)]
-
-        # calculates % edits
-        compstr1 = ''
-        for i, (res1, res2) in enumerate(zip(newseq1, newseq2)):
-            if (res1 == '-' or res2 == '-') or res1 == res2:
-                compstr1 += str(0)
-            elif res1 != res2:
-                compstr1 += str(1)
-            else:
-                pass
-
-        edit_list = []
-        for s,e in get_indices(compstr1, window_size):
-            #print s
-            #print e
-            #print compstr1[s:e]
-            try:
-                edit_list.append(calc_percent(compstr1, s, e, window_size))
-            except(ValueError,IndexError):
-                pass
-
-        # calculates % sequence identity
-        compstr2 = ''
-        for i, (res1, res2) in enumerate(zip(newseq2, newseq3)):
-            if res1 == res2:
-                compstr2 += str(1)
-            elif res1 != res2:
-                compstr2 += str(0)
-            else:
-                pass
-
-        identity_list = []
-        for s,e in get_indices(compstr2, window_size):
-            try:
-                identity_list.append(calc_percent(compstr2, s, e, window_size))
-            except(ValueError,IndexError):
-                pass
-
-        edit_mean = calc_mean(edit_list)
-        average_list = []
-        for i in range(len(edit_list)):
-            average_list.append(edit_mean)
-        identity_mean = calc_mean(identity_list)
-
-        edits_above_average = 0.0
-        total_edits = 0.0
-        for edit in edit_list:
-            if edit > edit_mean:
-                total_edits += edit
-                edits_above_average += edit
-            else:
-                total_edits += edit
-
-        percent_above_average_edits = (edits_above_average/total_edits) * 100
-        print percent_above_average_edits
-
-        PC = calc_pearson(edit_list, identity_list, edit_mean, identity_mean)
-        print PC
-        print calc_tvalue(PC, len(edit_list))
-
-        fig, ax1 = plt.subplots()
-        ax2 = ax1.twinx()
-        ax1.plot([e for e in edit_list], color='b')
-        ax1.plot([mean for mean in average_list], color='k')
-        ax2.plot([i for i in identity_list], color='m')
-        plt.title('%s' % (name))
-        ax1.set_xlabel('sliding window position')
-        ax1.set_ylabel('% edits', color='b')
-        ax2.set_ylabel('sequence identity', color='m')
-        plt.savefig('%s.pdf' % (name))
-        plt.close()
+    fig, ax1 = plt.subplots()
+    ax2 = ax1.twinx()
+    ax1.plot([e for e in edit_list], color='b')
+    ax1.plot([mean for mean in average_list], color='k')
+    ax2.plot([i for i in identity_list], color='m')
+    plt.title('%s' % (name))
+    ax1.set_xlabel('sliding window position')
+    ax1.set_ylabel('% edits', color='b')
+    ax2.set_ylabel('sequence identity', color='m')
+    plt.savefig('%s.pdf' % (name))
+    plt.close()

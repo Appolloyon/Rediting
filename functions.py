@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import math
+
 def gulp(string, start, gulp_size):
     """get substrings of a string"""
     gulpstr = ''
@@ -73,3 +75,51 @@ def build_seqdict(infile, seqdict):
             else:
                 seqdict[ID] += line
     return seqdict
+
+def calc_percent(string, start, end, window_size):
+    """Calculates percent value of a given string"""
+    chars = string[start:end]
+    sum = 0.0
+    w = window_size
+    for char in chars:
+        sum += float(char)
+    percent = float((sum/w)*100)
+    return percent
+
+def get_indices(string, window_size):
+    """Returns a list of start and end coordinates for windows"""
+    indices = []
+    w = int(window_size)
+    for i in range(len(string) - w):
+        try:
+            index_low = i
+            index_high = i + w
+            indices.append([index_low, index_high])
+        except(ValueError,IndexError):
+            pass
+    return indices
+
+def calc_mean(values):
+    """Calculates mean of a set of values"""
+    sum = 0.0
+    for value in values:
+        value = float(value)
+        sum += value
+    mean = sum/(float(len(values)))
+    return mean
+
+def calc_pearson(xvalues, yvalues, xmean, ymean):
+    N = len(xvalues)
+    num = 0.0
+    xdenom = 0.0
+    ydenom = 0.0
+    for i in range(N):
+        num += ((xvalues[i] - xmean) * (yvalues[i] - ymean))
+        xdenom += ((xvalues[i] - xmean)**2)
+        ydenom += ((yvalues[i] - ymean)**2)
+    denom = (math.sqrt(xdenom)) * (math.sqrt(ydenom))
+    return num/denom
+
+def calc_tvalue(PC, N):
+    return abs((PC * math.sqrt(N-2))/(math.sqrt(1-(PC**2))))
+
