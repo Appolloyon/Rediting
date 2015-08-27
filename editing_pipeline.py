@@ -11,7 +11,7 @@ from functions import gulp, compare_seqs, nonblank_lines, sanitize, calc_gc, bui
 parser = argparse.ArgumentParser(
     description = """Calculates editing stats between genomic/RNA sequences""",
     epilog = """This program assumes that the genomic and RNA sequences for a
-    given gene are provided in the same file in an FASTA format, such as that
+    given gene are provided in the same file in an aligned FASTA format, such as that
     output by MAFFT or MUSCLE. It will go through and calculate information
     regarding the editing events, as identified by differences in the aligned
     sequences. These include nucleotide, codon, and amino acid changes, as well
