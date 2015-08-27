@@ -15,7 +15,32 @@ import os
 import sys
 import re
 import math
+import argparse
 import matplotlib.pyplot as plt
+
+parser = argparse.ArgumentParser(
+    description = """Compares editing frequency between aligned genomic/RNA
+        sequences and a reference""",
+    epilog = """This program assumes that the genomic and RNA sequence for a
+    given gene are provided in the same file in an aligned FASTA format, such
+    as that output by MAFFT or MUSCLE. In addition, a reference sequence in the
+    same aligned file will be used for comparison. Based on a given sliding
+    window size, the program will compare the genomic sequence to the RNA sequence
+    and the reference in each window frame and calculate the % editing and %
+    identity, respectively. In addition, a pearson correlation will be calculated
+    to determine if the two trends are related along the entire length of the
+    sequence (all observed windows are treated as individual data points). In order
+    to distinguish between genomic and RNA sequences, the user must specify a
+    distinguishing string (word or list of characters) present in the FASTA
+    header of each (e.g. 'RNA' or 'mRNA' for RNA sequences.""")
+parser.add_argument('infiles', nargs='+', help='list of infiles')
+parser.add_argument('-r', '--RNA', help='unique string present in RNA sequence header')
+parser.add_argument('-g', '--genomic', help='unique string present in genomic sequence header')
+parser.add_argument('-n', '--numequal', help='number of equal residues out of "size"\
+        to signify start/end of alignment', default=7)
+parser.add_argument('-s', '--size', help='number of residues to compare to determine\
+        start/end of an alignment', default=9)
+parser.add_argument('-w', '--window_size', help='size of sliding window', default=30)
 
 window_size = float(sys.argv[1])
 file_list = sys.argv[2:]
