@@ -12,7 +12,7 @@ import re
 import argparse
 
 from classes import SeqPair
-from functions import gulp, compare_seqs, sanitize, build_seqdict, polyT, ispolyTpercent
+from functions import gulp, compare_seqs, sanitize, build_seqdict, get_indices, polyT, ispolyTpercent
 
 parser = argparse.ArgumentParser(
     description = """Calculates RNA editing in genomic poly-T tracks""",
@@ -122,11 +122,11 @@ for infile in args.infiles:
                     testseq2.append(gulp(newgseq, i-y, 10))
                 except:
                     pass
-            print i
-            print testseq2
+            #print i
+            #print testseq2
             if ispolyTpercent(testseq2, int(args.percent)):
                 #print i
-                print testseq2
+                #print testseq2
                 pos = seq_pair2.index_nuc() + 1
                 cpos = seq_pair2.index_position()
                 gnuc = seq_pair2.lookup_gnuc()
@@ -145,6 +145,34 @@ for infile in args.infiles:
             else:
                 seq_pair2.incr_all()
                 seq_pair2.incr_mrna()
+
+    num_gen_polyt = 0.0
+    num_rna_polyt = 0.0
+    num_gen_percent_polyt = 0.0
+    num_rna_percent_polyt = 0.0
+
+    for start,end in get_indices(newgseq, 7):
+        gen_polyt_str = newgseq[start:end]
+        rna_polyt_str = newmseq[start:end]
+        #print "genomic sequence: " + gen_polyt_str
+        #print "RNA sequence:     " + rna_polyt_str
+        if polyT(gen_polyt_str):
+            print "genomic sequence " + gen_polyt_str + " is a genomic polyT tract"
+            num_gen_polyt += 1.0
+        if polyT(rna_polyt_str):
+            print "RNA sequence " + rna_polyt_str + " is a RNA polyT tract"
+            num_rna_polyt += 1.0
+    #for start,end in get_indices(newmseq, 7):
+        #rna_polyt_str = newmseq[start:end]
+        #print "rna sequence: " + rna_polyt_str
+        #if polyT(rna_polyt_str):
+            #print "is a polyT tract"
+            #num_rna_polyt += 1.0
+    percent_gen_polyt = (num_gen_polyt/len(get_indices(newgseq, 7))) * 100
+    percent_rna_polyt = (num_rna_polyt/len(get_indices(newmseq, 7))) * 100
+
+    print percent_gen_polyt
+    print percent_rna_polyt
 
     out1 = name + "_polyt_out.csv"
     with open(out1,'w') as o1:
