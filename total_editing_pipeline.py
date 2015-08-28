@@ -6,7 +6,7 @@ import argparse
 from classes import SeqPair
 from matrices import Blosum62
 from functions import gulp, compare_seqs, sanitize, calc_gc, build_seqdict,\
-        get_indices, polyT, ispolyTpercent
+        get_indices, polyT, polyTpercent, ispolyTpercent
 
 parser = argparse.ArgumentParser(
     description = """Calculates editing stats between genomic/RNA sequences""",
@@ -34,9 +34,24 @@ parser.add_argument('-t', '--polyt', action='store_true', help='calculate polyT'
 parser.add_argument('-p', '--percent', help='percent cut-off for polyT', default=70)
 args = parser.parse_args()
 
+if args.polyt and not args.basic:
+    print "Cannot run polyT without basic editing analysis"
+    assert False
+
+num_equal = int(args.numequal)
+size = int(args.size)
+percent = int(args.percent)
+
 if args.basic:
     m_out = "master_editing_out.csv"
     m_o = open(m_out,'w')
+    #if args.polyt:
+    m_o.write("gene,GC before,GC after,nucleotide length,amino acid length,percent edits,percent edits in first two positions,percent amino acid edits,average edit score")
+    if args.polyt:
+        m_o.write(",fraction polyT before,fraction polyT after,fraction " + str(percent) + " percent polyT before,fraction " + str(percent) + " percent polyT after")
+    else:
+        pass
+    m_o.write("\n" * 2)
 
 for infile in args.infiles:
     name = infile.split('.')[0]
@@ -64,8 +79,6 @@ for infile in args.infiles:
     san_gen_seq = sanitize(gen_seq)
     seq_pair = SeqPair(san_rna_seq,san_gen_seq,name)
 
-    num_equal = int(args.numequal)
-    size = int(args.size)
     i = 0
     j = 0
     while not compare_seqs((gulp(rna_seq, i, size)),
@@ -86,8 +99,6 @@ for infile in args.infiles:
         edit_list = []
     if args.edits:
         num_edited_res = 0
-    if args.polyt:
-        percent = int(args.percent)
 
     for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):  #compare matching regions
         if rg == '-' and rm != '-':  #insertion in mRNA
@@ -114,11 +125,8 @@ for infile in args.infiles:
             maa = seq_pair.lookup_maa()
             scr = (Blosum62(gaa, maa).sub_score())
 
-            if args.basic:
-                edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr])
-
             if args.polyt:
-                is_polyt = False
+                is_polyt = "N"
                 if i <= 4:
                     polyt_test_seq = gulp(new_gen_seq, 0, 7)
                 elif i >= len(new_gen_seq) - 4:
@@ -126,9 +134,9 @@ for infile in args.infiles:
                 else:
                     polyt_test_seq = gulp(new_gen_seq, i-3, 7)
                 if polyT(polyt_test_seq):
-                    is_polyt = True
+                    is_polyt = "Y"
 
-                is_polyt_percent = False
+                is_polyt_percent = "N"
                 percent_polyt_seqs = []
                 for y in range(10):
                     try:
@@ -136,7 +144,7 @@ for infile in args.infiles:
                     except:
                         pass
                 if ispolyTpercent(percent_polyt_seqs, percent):
-                    is_polyt_percent = True
+                    is_polyt_percent = "Y"
 
             if args.basic and not args.polyt:
                 edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr])
@@ -157,22 +165,64 @@ for infile in args.infiles:
             seq_pair.incr_all()
             seq_pair.incr_mrna()
 
+    if args.polyt:
+        num_gen_polyt = 0.0
+        num_rna_polyt = 0.0
+        polyt_indices = get_indices(new_gen_seq, 7)
+
+        for start,end in polyt_indices:
+            #gen_polyt_str = new_gen_seq[start:end]
+            if polyT(new_gen_seq[start:end]):
+                num_gen_polyt += 1.0
+
+            #rna_polyt_str = new_rna_seq[start:end]
+            if polyT(new_rna_seq[start:end]):
+                num_rna_polyt += 1.0
+
+        num_gen_percent_polyt = 0.0
+        num_rna_percent_polyt = 0.0
+        percent_polyt_indices = get_indices(new_gen_seq, 10)
+
+        for start,end in percent_polyt_indices:
+            #gen_percent_polyt_str = new_gen_seq[start:end]
+            if polyTpercent(new_gen_seq[start:end], percent):
+                num_gen_percent_polyt += 1.0
+
+            #rna_percent_polyt_str = new_rna_seq[start:end]
+            if polyTpercent(new_rna_seq[start:end], percent):
+                num_rna_percent_polyt += 1.0
+
+        fraction_gen_polyt = (num_gen_polyt/len(polyt_indices)) * 100
+        fraction_rna_polyt = (num_rna_polyt/len(polyt_indices)) * 100
+        fraction_gen_percent_polyt = (num_gen_percent_polyt/len(percent_polyt_indices)) * 100
+        fraction_rna_percent_polyt = (num_rna_percent_polyt/len(percent_polyt_indices)) * 100
+
     if args.basic:
         subscore = 0
         num_aaedits = 0
         num_fpos = 0
         with open(b_out,'w') as b_o:
-            b_o.write("position,codon position,genome base,mRNA base,genome codon,\
-               mRNA codon,genome amino acid,mRNA amino acid,substitution score")
-            b_o.write("\n")
-            for P, C, GN, MN, GC, MC, GA, MA, S in edit_list:
-                b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
-                subscore += int(S)
-                if GA != MA:
-                    num_aaedits += 1
-                    #print num_aaedits
-                if C == 1 or C == 2:
-                    num_fpos += 1
+            b_o.write("position,codon position,genome base,mRNAbase,genome codon,mRNA codon,\
+genome amino acid,mRNA amino acid,substitution score")
+            if args.polyt:
+                b_o.write(",in a polyT tract,in a tract with " + str(percent) + " percent T residues")
+            b_o.write("\n" * 2)
+            if args.polyt:
+                for P, C, GN, MN, GC, MC, GA, MA, S, IP, IPP in edit_list:
+                    b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA,S,IP,IPP) + "\n")
+                    subscore += int(S)
+                    if GA != MA:
+                        num_aaedits += 1
+                    if C == 1 or C == 2:
+                        num_fpos += 1
+            else:
+                for P, C, GN, MN, GC, MC, GA, MA, S in edit_list:
+                    b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" % (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
+                    subscore += int(S)
+                    if GA != MA:
+                        num_aaedits += 1
+                    if C == 1 or C == 2:
+                        num_fpos += 1
 
         gcb = calc_gc(new_gen_seq)
         gca = calc_gc(new_rna_seq)
@@ -184,8 +234,13 @@ for infile in args.infiles:
         editscore = subscore/numedits
         fpos = (num_fpos/numedits) * 100
 
+        #if args.polyt:
         m_o.write("%s,%.2f,%.2f,%s,%s,%.2f,%.2f,%.2f,%.2f" % (gene,gcb,gca,seqlength,\
-                aalength,seqedits,fpos,aaedits,editscore) + "\n")
+                aalength,seqedits,fpos,aaedits,editscore))
+        if args.polyt:
+            m_o.write(",%.2f,%.2f,%.2f,%.2f" % (fraction_gen_polyt,fraction_rna_polyt,\
+                fraction_gen_percent_polyt,fraction_rna_percent_polyt))
+        m_o.write("\n")
 
     if args.codon:
         with open(c_out,'w') as c_o:
