@@ -2,21 +2,27 @@
 
 import re
 import argparse
-#from indelclass import IndelPair
-from functions import nonblank_lines # sanitize
 
 parser = argparse.ArgumentParser(
     description = "Calculates position of indels against a ref sequence",
     epilog = """This program assumes that the reference and query sequence for
-    a given gene are provided in the same format in aligned FASTA format (.afa).
+    a given gene are provided in the same format in aligned FASTA format.
     It also assumes that the header line for the references sequence will have the
     string 'reference' somewhere. Output is given as a single csv file per gene""")
 parser.add_argument('infiles', nargs='+', help='list of aligned files')
 args = parser.parse_args()
 
 
+def nonblank_lines(f):
+    """skip blank lines"""
+    for l in f:
+        line = l.strip('\n')
+        if line:
+            yield line
+
+
 for infile in args.infiles:
-    name = infile.rstrip('.afa')
+    name = infile.split('.')[0]
     with open(infile,'U') as i:
         seqdict = {}
         for line in nonblank_lines(i):
@@ -34,13 +40,8 @@ for infile in args.infiles:
         else:
             qseq = seqdict.get(k)
 
-    #san_rseq = sanitize(rseq)
-    #san_qseq = sanitize(qseq)
-
-    #seq_pair = IndelPair(san_rseq, san_qseq, name)
     ref_counter = 1
 
-# come back to this later and change the definition of start and end of alignment
     i = 0
     while not (rseq[i] != '-' and qseq[i] != '-'):  # start when both residues exist
         if rseq[i] != '-':  # we only care about the refseq index
@@ -86,8 +87,6 @@ for infile in args.infiles:
     out_deletion = name + "_deletions.csv"
 
     with open(out_insert,'w') as o1, open(out_deletion,'w') as o2:
-        #o1.write("organism,position,number" + '\n' + '\n')
-        #o2.write("organism,position,number" + '\n' + '\n')
         for k in insert_list:
             v = insert_dict[k]
             o1.write("%s,%s,%s" % (name,k,v))
