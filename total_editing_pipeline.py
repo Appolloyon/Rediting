@@ -272,6 +272,9 @@ genome amino acid,mRNA amino acid,substitution score")
             e_o.write("C to T: {}\n".format(seq_pair.transition_dict.get('c_t')))
             e_o.write("C to G: {}\n".format(seq_pair.transition_dict.get('c_g')))
 
+if args.basic:
+    m_o.close()
+
 """
 Program Outline:
     For each infile:

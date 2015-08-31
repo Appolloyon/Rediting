@@ -41,9 +41,16 @@ parser.add_argument('-n', '--numequal', help='number of equal residues out of "s
 parser.add_argument('-s', '--size', help='number of residues to compare to determine\
         start/end of an alignment', default=9)
 parser.add_argument('-w', '--window_size', help='size of sliding window', default=60)
+parser.add_argument('-o', '--long_output', action='store_true', help='output summary csv file')
 args = parser.parse_args()
 
 window_size = float(args.window_size)
+
+if args.long_output:
+    m_out = "master_sliding_window_out.csv"
+    m_o = open(m_out, 'w')
+    m_o.write("number obs,DF (N-2),pearson correlation,t value")
+    m_o.write("\n" * 2)
 
 for infile in args.infiles:
     #name = ((os.path.basename((file)).strip(".afa")))
@@ -136,6 +143,9 @@ for infile in args.infiles:
     tvalue = calc_tvalue(PC, num_obs)
     #print tvalue
 
+    if args.long_output:
+        m_o.write("%d,%d,%f,%f" % (num_obs,(num_obs - 2),PC,tvalue) + "\n")
+
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
 
@@ -154,3 +164,6 @@ for infile in args.infiles:
 
     plt.savefig('%s.pdf' % (name))
     plt.close()
+
+if args.long_output:
+    m_o.close()
