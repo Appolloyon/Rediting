@@ -49,7 +49,7 @@ window_size = float(args.window_size)
 if args.long_output:
     m_out = "master_sliding_window_out.csv"
     m_o = open(m_out, 'w')
-    m_o.write("number obs,DF (N-2),pearson correlation,t value")
+    m_o.write("name,percent above average edits,number obs,DF (N-2),pearson correlation,t value")
     m_o.write("\n" * 2)
 
 for infile in args.infiles:
@@ -144,7 +144,7 @@ for infile in args.infiles:
     #print tvalue
 
     if args.long_output:
-        m_o.write("%d,%d,%f,%f" % (num_obs,(num_obs - 2),PC,tvalue) + "\n")
+        m_o.write("%s,%.2f,%d,%d,%f,%f" % (name,percent_above_average_edits,num_obs,(num_obs - 2),PC,tvalue) + "\n")
 
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
