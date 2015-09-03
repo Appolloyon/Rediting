@@ -186,11 +186,11 @@ def calculate_codons(nuc_seq,codon_pos):
     #indices = get_non_overlapping_indices
     #print "codon position passed in is " + str(codon_pos)
     if int(codon_pos) == 1:
-        test_seq = nuc_seq
+        test_seq = sanitize(nuc_seq)
     elif int(codon_pos) == 2:
-        test_seq = nuc_seq[2:]
+        test_seq = sanitize(nuc_seq[2:])
     elif int(codon_pos) == 3:
-        test_seq = nuc_seq[1:]
+        test_seq = sanitize(nuc_seq[1:])
     #print "looking for codons in sequence " + test_seq
     for start,end in get_non_overlapping_indices(test_seq,0,3,indices=[]):
         codon_list.append(test_seq[start:end])

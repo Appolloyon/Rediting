@@ -101,7 +101,7 @@ for infile in args.infiles:
     new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
     new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
     new_ref_seq = ref_seq[i:(len(ref_seq)-j)]
-    print new_ref_seq
+    #print new_ref_seq
 
     # calculates % edits between genomic and RNA sequences
     compstr1 = ''
@@ -143,48 +143,52 @@ for infile in args.infiles:
     if args.protein:
         similarity_list = []
         #compstr3 = ''
+        print "Ref"
+        print new_ref_seq
+        print "Gen"
+        print new_gen_seq
         for i, (rg,rr) in enumerate(zip(new_gen_seq, new_ref_seq)):
-            compstr3 = ''
+            similarity_sum = 0.0
             if new_gen_seq[i] != '-':
-                #print "genomic nucleotide at position " + str(i) + " is " + gen_seq[i]
-                #print "current genomic codon position is " + str(ref_pair.index_gposition())
+                print "genomic nucleotide at position " + str(i) + " is " + new_gen_seq[i]
+                print "current genomic codon position is " + str(ref_pair.index_gposition())
                 if i > 0:
                     ref_pair.incr_all_gen()
             if new_ref_seq[i] != '-':
-                #print "reference nucleotide at position " + str(i) + " is " + new_ref_seq[i]
-                #print "current reference codon position is " + str(ref_pair.index_rposition())
+                print "reference nucleotide at position " + str(i) + " is " + new_ref_seq[i]
+                print "current reference codon position is " + str(ref_pair.index_rposition())
                 if i > 0:
                     ref_pair.incr_all_ref()
 
 
             rpos = ref_pair.index_rposition()
-            #print "current reference codon position is " + str(rpos)
+            print "current reference codon position is " + str(rpos)
             gpos = ref_pair.index_gposition()
-            #print "current genomic codon position is " + str(gpos)
+            print "current genomic codon position is " + str(gpos)
             #try:
             rnuc_seq = gulp(new_ref_seq, i, int(window_size))
-            #print "current ref seq = " + rnuc_seq
+            print "current ref seq = " + rnuc_seq
             raa_seq = translate(rnuc_seq,rpos)
             print "current ref aa seq is " + str(len(raa_seq)) + " amino acids long and is " + raa_seq
             gnuc_seq = gulp(new_gen_seq, i, int(window_size))
-            #print "current gen seq = " + gnuc_seq
+            print "current gen seq = " + gnuc_seq
             gaa_seq = translate(gnuc_seq,rpos)
             print "current gen aa seq is " + str(len(gaa_seq)) + " amino acids long and is " + gaa_seq
 
             if len(rnuc_seq) == int(window_size) and len(gnuc_seq) == int(window_size):
                 for raa,gaa in zip(raa_seq,gaa_seq):
                     if raa == '-' or gaa == '-':
-                        compstr3 += str(0)
+                        similarity_sum += 0.0
                     elif raa == gaa:
-                        compstr3 += str(2)
+                        similarity_sum += 1.0
                     elif Blosum62(raa,gaa).sub_score() > 0:
-                        compstr3 += str(1)
+                        similarity_sum += 0.5
                     else:
-                        compstr3 += str(0)
+                        similarity_sum += 0.0
 
-                print "compstring is " + compstr3
+                #print "similarity sum is " + str(similarity_sum)
                 try:
-                    similarity_list.append(calc_percent(compstr3, 0, len(compstr3), 2 * (len(compstr3))))
+                    similarity_list.append((similarity_sum/float(len(raa_seq))*100))
                 except(ValueError,IndexError):
                     pass
 
