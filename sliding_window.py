@@ -15,8 +15,10 @@ import re
 import argparse
 import matplotlib.pyplot as plt
 
-from functions import gulp, compare_seqs, build_seqdict, calc_percent,\
-        get_indices, calc_mean, calc_pearson, calc_tvalue
+from classes import RefPair
+from matrices import Blosum62
+from functions import gulp, compare_seqs, sanitize, build_seqdict, calc_percent,\
+        get_indices, calc_mean, calc_pearson, calc_tvalue, translate
 
 parser = argparse.ArgumentParser(
     description = """Compares editing frequency between aligned genomic/RNA
@@ -42,9 +44,12 @@ parser.add_argument('-s', '--size', help='number of residues to compare to deter
         start/end of an alignment', default=9)
 parser.add_argument('-w', '--window_size', help='size of sliding window', default=60)
 parser.add_argument('-o', '--long_output', action='store_true', help='output summary csv file')
+parser.add_argument('-p', '--protein', action='store_true', help='compare conceptual translations as well')
 args = parser.parse_args()
 
 window_size = float(args.window_size)
+num_equal = int(args.numequal)
+size = int(args.size)
 
 if args.long_output:
     m_out = "master_sliding_window_out.csv"
@@ -53,7 +58,6 @@ if args.long_output:
     m_o.write("\n" * 2)
 
 for infile in args.infiles:
-    #name = ((os.path.basename((file)).strip(".afa")))
     name = infile.split('.')[0]
     gene = name.split('_')[1]
 
@@ -70,12 +74,25 @@ for infile in args.infiles:
         else:
             ref_seq = seqdict.get(k)
 
-    num_equal = int(args.numequal)
-    size = int(args.size)
+    if args.protein:
+        san_gen_seq = sanitize(gen_seq)
+        #print san_gen_seq
+        san_ref_seq = sanitize(ref_seq)
+        #print san_ref_seq
+        ref_pair = RefPair(san_ref_seq,san_gen_seq,name)
+
     i = 0
     j = 0
     while not compare_seqs((gulp(rna_seq, i, size)),
             (gulp(gen_seq, i, size)), num_equal):  #start of alignment
+        if gen_seq[i] != '-':
+            #print "genomic nucleotide at position " + str(i) + " is " + gen_seq[i]
+            #print "current genomic codon position is " + str(ref_pair.index_gposition())
+            ref_pair.incr_all_gen()
+        if ref_seq[i] != '-':
+            #print "reference nucleotide at position " + str(i) + " is " + ref_seq[i]
+            #print "current reference codon position is " + str(ref_pair.index_rposition())
+            ref_pair.incr_all_ref()
         i += 1
     while not compare_seqs((gulp(rna_seq[::-1], j, size)),
             (gulp(gen_seq[::-1], j, size)), num_equal):  #end of alignment
@@ -84,6 +101,7 @@ for infile in args.infiles:
     new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
     new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
     new_ref_seq = ref_seq[i:(len(ref_seq)-j)]
+    print new_ref_seq
 
     # calculates % edits between genomic and RNA sequences
     compstr1 = ''
@@ -119,6 +137,59 @@ for infile in args.infiles:
         except(ValueError,IndexError):
             pass
 
+    #print "RefPair reference codon position is " + str(ref_pair.index_rposition())
+    #print "RefPair genomic codon position is " + str(ref_pair.index_gposition())
+
+    if args.protein:
+        similarity_list = []
+        #compstr3 = ''
+        for i, (rg,rr) in enumerate(zip(new_gen_seq, new_ref_seq)):
+            compstr3 = ''
+            if new_gen_seq[i] != '-':
+                #print "genomic nucleotide at position " + str(i) + " is " + gen_seq[i]
+                #print "current genomic codon position is " + str(ref_pair.index_gposition())
+                if i > 0:
+                    ref_pair.incr_all_gen()
+            if new_ref_seq[i] != '-':
+                #print "reference nucleotide at position " + str(i) + " is " + new_ref_seq[i]
+                #print "current reference codon position is " + str(ref_pair.index_rposition())
+                if i > 0:
+                    ref_pair.incr_all_ref()
+
+
+            rpos = ref_pair.index_rposition()
+            #print "current reference codon position is " + str(rpos)
+            gpos = ref_pair.index_gposition()
+            #print "current genomic codon position is " + str(gpos)
+            #try:
+            rnuc_seq = gulp(new_ref_seq, i, int(window_size))
+            #print "current ref seq = " + rnuc_seq
+            raa_seq = translate(rnuc_seq,rpos)
+            print "current ref aa seq is " + str(len(raa_seq)) + " amino acids long and is " + raa_seq
+            gnuc_seq = gulp(new_gen_seq, i, int(window_size))
+            #print "current gen seq = " + gnuc_seq
+            gaa_seq = translate(gnuc_seq,rpos)
+            print "current gen aa seq is " + str(len(gaa_seq)) + " amino acids long and is " + gaa_seq
+
+            if len(rnuc_seq) == int(window_size) and len(gnuc_seq) == int(window_size):
+                for raa,gaa in zip(raa_seq,gaa_seq):
+                    if raa == '-' or gaa == '-':
+                        compstr3 += str(0)
+                    elif raa == gaa:
+                        compstr3 += str(2)
+                    elif Blosum62(raa,gaa).sub_score() > 0:
+                        compstr3 += str(1)
+                    else:
+                        compstr3 += str(0)
+
+                print "compstring is " + compstr3
+                try:
+                    similarity_list.append(calc_percent(compstr3, 0, len(compstr3), 2 * (len(compstr3))))
+                except(ValueError,IndexError):
+                    pass
+
+        #print similarity_list
+
     edit_mean = calc_mean(edit_list)
     average_list = []
     for i in range(len(edit_list)):
@@ -152,6 +223,8 @@ for infile in args.infiles:
     ax1.plot([e for e in edit_list], color='b')
     ax1.plot([mean for mean in average_list], linestyle='--', color='k')
     ax2.plot([i for i in identity_list], color='m')
+    if args.protein:
+        ax2.plot([i for i in similarity_list], color='g')
 
     plt.title('%s' % (name))
     ax1.set_xlabel('sliding window position')

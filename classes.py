@@ -186,3 +186,133 @@ class SeqPair(object):
         else:
             pass
 
+
+class RefPair(object):
+    """Class to model DNA/ref sequence pairs"""
+
+    def __init__(self, rseq, gseq, name):
+        self.name = name
+        self.rseq = rseq
+        self.gseq = gseq
+        self.rnuc_index = 0  #initialize counter for index in ref sequence
+        self.gnuc_index = 0  #initialize counter for index in gen sequence
+        self.rcodon_pos = 1  #keep track of codon position for each
+        self.gcodon_pos = 1  #keep track of codon position for each
+        self.aa_dict = {
+            'F':{'TTT','TTC'},
+            'L':{'TTA','TTG','CTT','CTC','CTA','CTG'},
+            'I':{'ATT','ATC','ATA'},
+            'M':{'ATG'},
+            'V':{'GTT','GTC','GTA','GTG'},
+            'S':{'TCT','TCC','TCA','TCG','AGT','AGC'},
+            'P':{'CCT','CCC','CCA','CCG'},
+            'T':{'ACT','ACC','ACA','ACG'},
+            'A':{'GCT','GCC','GCA','GCG'},
+            'Y':{'TAT','TAC'},
+            'H':{'CAT','CAC'},
+            'Q':{'CAA','CAG'},
+            'N':{'AAT','AAC'},
+            'K':{'AAA','AAG'},
+            'D':{'GAT','GAC'},
+            'E':{'GAA','GAG'},
+            'C':{'TGT','TGC'},
+            'W':{'TGG'},
+            'R':{'CGT','CGC','CGA','CGG','AGA','AGG'},
+            'G':{'GGT','GGC','GGA','GGG'},
+            'STOP':{'TAA','TAG','TGA'}
+            }
+
+    def index_nuc(self):
+        """simple access method"""
+        return self.gnuc_index
+
+    def index_ref(self):
+        """simple access method"""
+        return self.rnuc_index
+
+    def index_rposition(self):
+        """simple access method"""
+        return self.rcodon_pos
+
+    def index_gposition(self):
+        """simple access method"""
+        return self.gcodon_pos
+
+    def incr_ref(self):
+        """increments ref index only"""
+        self.rnuc_index += 1
+
+    def incr_gen(self):
+        """increments gen index only"""
+        self.gnuc_index += 1
+
+    def incr_rpos(self):
+        """maintains position within a ref codon as 1, 2, or 3"""
+        if self.rcodon_pos < 3:
+            self.rcodon_pos += 1
+        else:
+            self.rcodon_pos = 1
+
+    def incr_gpos(self):
+        """maintatins position within gen codon as 1, 2, or 3"""
+        if self.gcodon_pos < 3:
+            self.gcodon_pos += 1
+        else:
+            self.gcodon_pos = 1
+
+    def incr_all_ref(self):
+        """advances counters through ref only"""
+        self.incr_rpos()
+        self.incr_ref()
+
+    def incr_all_gen(self):
+        """advances counters through gen only"""
+        self.incr_gpos()
+        self.incr_gen()
+
+
+
+
+
+    def lookup_gnuc(self):
+        """looks up current DNA nucleotide"""
+        return self.gseq[self.gnuc_index]
+
+    def lookup_mnuc(self):
+        """looks up current mRNA nucleotide"""
+        return self.mseq[self.mnuc_index]
+
+    def lookup_gcodon(self):
+        """returns DNA index as a codon"""
+        if self.codon_pos == 1:  #uses codon position to determine slice
+            return self.gseq[self.index_nuc():(self.index_nuc()+3)]
+        elif self.codon_pos == 2:
+            return self.gseq[(self.index_nuc()-1):(self.index_nuc()+2)]
+        else:
+            return self.gseq[(self.index_nuc()-2):self.index_nuc()+1]
+
+    def lookup_mcodon(self):
+        """returns mRNA index as a codon"""
+        if self.codon_pos == 1:
+            return self.mseq[self.index_mrna():(self.index_mrna()+3)]
+        elif self.codon_pos == 2:
+            return self.mseq[(self.index_mrna()-1):(self.index_mrna()+2)]
+        else:
+            return self.mseq[(self.index_mrna()-2):self.index_mrna()+1]
+
+    def lookup_gaa(self):
+        """returns aa specified by DNA codon"""
+        codon = self.lookup_gcodon()
+        for k1 in self.gnuc_aa_dict.keys():
+            for e in self.gnuc_aa_dict.get(k1):
+                if e == codon:
+                    return k1
+
+    def lookup_maa(self):
+        """returns aa specified by mRNA codon"""
+        codon = self.lookup_mcodon()
+        for k1 in self.mnuc_aa_dict.keys():
+            for e in self.mnuc_aa_dict.get(k1):
+                if e == codon:
+                    return k1
+
