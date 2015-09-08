@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 
 from classes import RefPair
 from matrices import Blosum62
+from sequence_alignment import affine_align
 from functions import gulp, compare_seqs, sanitize, build_seqdict, calc_percent,\
         get_indices, calc_mean, calc_pearson, calc_tvalue, translate
 
@@ -54,7 +55,9 @@ size = int(args.size)
 if args.long_output:
     m_out = "master_sliding_window_out.csv"
     m_o = open(m_out, 'w')
-    m_o.write("name,percent above average edits,number obs,DF (N-2),pearson correlation,t value")
+    m_o.write("name,percent above average edits,number obs,DF (N-2),nucleotide pearson correlation,nucleotide t value")
+    if args.protein:
+        m_o.write(",amino acid pearson correlation,amino acid t value")
     m_o.write("\n" * 2)
 
 for infile in args.infiles:
@@ -137,45 +140,28 @@ for infile in args.infiles:
         except(ValueError,IndexError):
             pass
 
-    #print "RefPair reference codon position is " + str(ref_pair.index_rposition())
-    #print "RefPair genomic codon position is " + str(ref_pair.index_gposition())
-
     if args.protein:
         similarity_list = []
-        #compstr3 = ''
-        print "Ref"
-        print new_ref_seq
-        print "Gen"
-        print new_gen_seq
         for i, (rg,rr) in enumerate(zip(new_gen_seq, new_ref_seq)):
             similarity_sum = 0.0
             if new_gen_seq[i] != '-':
-                print "genomic nucleotide at position " + str(i) + " is " + new_gen_seq[i]
-                print "current genomic codon position is " + str(ref_pair.index_gposition())
                 if i > 0:
                     ref_pair.incr_all_gen()
             if new_ref_seq[i] != '-':
-                print "reference nucleotide at position " + str(i) + " is " + new_ref_seq[i]
-                print "current reference codon position is " + str(ref_pair.index_rposition())
                 if i > 0:
                     ref_pair.incr_all_ref()
 
 
             rpos = ref_pair.index_rposition()
-            print "current reference codon position is " + str(rpos)
             gpos = ref_pair.index_gposition()
-            print "current genomic codon position is " + str(gpos)
-            #try:
             rnuc_seq = gulp(new_ref_seq, i, int(window_size))
-            print "current ref seq = " + rnuc_seq
             raa_seq = translate(rnuc_seq,rpos)
-            print "current ref aa seq is " + str(len(raa_seq)) + " amino acids long and is " + raa_seq
             gnuc_seq = gulp(new_gen_seq, i, int(window_size))
-            print "current gen seq = " + gnuc_seq
-            gaa_seq = translate(gnuc_seq,rpos)
-            print "current gen aa seq is " + str(len(gaa_seq)) + " amino acids long and is " + gaa_seq
+            gaa_seq = translate(gnuc_seq,gpos)
 
             if len(rnuc_seq) == int(window_size) and len(gnuc_seq) == int(window_size):
+                if len(raa_seq) != len(gaa_seq): # sequence require further alignment
+                    raa_seq,gaa_seq = affine_align(raa_seq,gaa_seq)
                 for raa,gaa in zip(raa_seq,gaa_seq):
                     if raa == '-' or gaa == '-':
                         similarity_sum += 0.0
@@ -186,19 +172,15 @@ for infile in args.infiles:
                     else:
                         similarity_sum += 0.0
 
-                #print "similarity sum is " + str(similarity_sum)
                 try:
                     similarity_list.append((similarity_sum/float(len(raa_seq))*100))
                 except(ValueError,IndexError):
                     pass
 
-        #print similarity_list
-
     edit_mean = calc_mean(edit_list)
     average_list = []
     for i in range(len(edit_list)):
         average_list.append(edit_mean)
-    identity_mean = calc_mean(identity_list)
 
     edits_above_average = 0.0
     total_edits = 0.0
@@ -210,16 +192,22 @@ for infile in args.infiles:
             total_edits += edit
 
     percent_above_average_edits = (edits_above_average/total_edits) * 100
-    #print percent_above_average_edits
-    PC = calc_pearson(edit_list, identity_list, edit_mean, identity_mean)
-    #print PC
     num_obs = len(edit_list)
-    #print num_obs
+
+    identity_mean = calc_mean(identity_list)
+    PC = calc_pearson(edit_list, identity_list, edit_mean, identity_mean)
     tvalue = calc_tvalue(PC, num_obs)
-    #print tvalue
+
+    if args.protein:
+        similarity_mean = calc_mean(similarity_list)
+        aa_PC = calc_pearson(edit_list, similarity_list, edit_mean, similarity_mean)
+        aa_tvalue = calc_tvalue(aa_PC, num_obs)
 
     if args.long_output:
-        m_o.write("%s,%.2f,%d,%d,%f,%f" % (name,percent_above_average_edits,num_obs,(num_obs - 2),PC,tvalue) + "\n")
+        m_o.write("%s,%.2f,%d,%d,%f,%f" % (name,percent_above_average_edits,num_obs,(num_obs - 2),PC,tvalue))
+        if args.protein:
+            m_o.write(",%f,%f" % (aa_PC,aa_tvalue))
+        m_o.write('\n')
 
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
@@ -235,7 +223,10 @@ for infile in args.infiles:
     ax1.set_ylabel('percent edited residues in RNA', color='b')
     ax2.set_ylabel('percent sequence identity to reference', color='m')
 
-    textstr = "percent above average = %.2f\npearson's correlation = %.2f\nnumber of windows = %d\ntvalue = %2.f"%(percent_above_average_edits,PC,num_obs,tvalue)
+    if args.protein:
+        textstr = "percent above average = %.2f\nnumber of windows = %d\nnucleotide pearson's correlation = %.2f\nnucleotide tvalue = %.2f\namino acid pearson's correlation = %.2f\namino acid tvalue = %.2f" % (percent_above_average_edits,num_obs,PC,tvalue,aa_PC,aa_tvalue)
+    else:
+        textstr = "percent above average = %.2f\nnumber of windows = %d\nnucleotide pearson's correlation = %.2f\nnucleotide tvalue = %2.f" % (percent_above_average_edits,PC,num_obs,tvalue)
     props = dict(boxstyle='round', facecolor='white', alpha=0.75)
     ax1.text(0.02, 0.98, textstr, transform=ax1.transAxes, fontsize=8, verticalalignment='top', bbox=props)
 
