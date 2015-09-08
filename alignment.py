@@ -29,7 +29,7 @@ def _init_x(i, j):
         return MIN
     else:
         if j > 0:
-            return -10 + (-0.5 * j)
+            return -11 + (-1 * j)
         else:
             return 0
 
@@ -38,7 +38,7 @@ def _init_y(i, j):
         return MIN
     else:
         if i > 0:
-            return -10 + (-0.5 * i)
+            return -11 + (-1 * i)
         else:
             return 0
 
@@ -104,6 +104,12 @@ if __name__ == '__main__':
     print seq1
     print seq2
     X,Y,M = distance_matrix(seq1,seq2)
+    print X
+    print
+    print Y
+    print
+    print M
+    print
     s1,s2 = backtrace(seq1,seq2,X,Y,M)
     print s1
     print s2
