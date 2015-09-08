@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+"""This module contains code to align two amino acid sequences along their
+entire length using affine (i.e. gap open/gap extend) penalties. A large
+part of this code is based off code found at: https://github.com/dnase/
+affine-gap-sequence-alignment/blob/master/alignment.py. The author greatly
+appreciates code contribution from the above source."""
+
 from matrices import Blosum62
 import numpy as np
 
