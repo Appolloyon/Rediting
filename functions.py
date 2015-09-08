@@ -171,27 +171,14 @@ def ispolyTpercent(plist, percent):
 def calculate_codons(nuc_seq,codon_pos):
     """returns a list of codons based on reading frame"""
     codon_list = []
-    #print nuc_seq
-    #print nuc_seq[1:]
-    #print nuc_seq[2:]
-    #if codon_pos == 1:
-        #for start,end in get_non_overlapping_indices(nuc_seq,0,3,indices=[]):
-            #codon_list.append(nuc_seq[start:end])
-    #elif codon_pos == 2:
-        #for start,end in get_non_overlapping_indices(nuc_seq[2:],0,3,indices=[]):
-            #codon_list.append((nuc_seq[2:])[start:end])
-    #elif codon_pos == 3:
-        #for start,end in get_non_overlapping_indices(nuc_seq[1:],0,3,indices=[]):
-            #codon_list.append((nuc_seq[1:])[start:end])
-    #indices = get_non_overlapping_indices
-    #print "codon position passed in is " + str(codon_pos)
+    # shift the reading frame based on codon position
     if int(codon_pos) == 1:
-        test_seq = sanitize(nuc_seq)
+        test_seq = nuc_seq
     elif int(codon_pos) == 2:
-        test_seq = sanitize(nuc_seq[2:])
+        test_seq = nuc_seq[2:]
     elif int(codon_pos) == 3:
-        test_seq = sanitize(nuc_seq[1:])
-    #print "looking for codons in sequence " + test_seq
+        test_seq = nuc_seq[1:]
+    # split remaining sequence into codons
     for start,end in get_non_overlapping_indices(test_seq,0,3,indices=[]):
         codon_list.append(test_seq[start:end])
     return codon_list
@@ -223,24 +210,22 @@ def translate(nuc_seq,codon_pos):
             }
     aa_seq = ''
     codon_str = ''
+    # special case when sequence starts with an insertion
+    if nuc_seq[0] == '-':
+        if codon_pos < 3:
+            codon_pos += 1
+        else:
+            codon_pos = 1
+    nuc_seq = sanitize(nuc_seq) # remove all gap characters prior to translation
     for codon in calculate_codons(nuc_seq,codon_pos):
         codon_str += codon + ', '
         aa = '-'
         for k in aa_dict.keys():
-            #print k
             for e in aa_dict.get(k):
-                #print e
                 if e == codon:
-                    #print "Match found"
                     aa = k
         if aa == 'STOP':
-            #print "Replacing STOP codon with -"
             aa = '-'
-        #print "Adding amino acid " + aa + " for codon " + codon
         aa_seq += aa
-        #else:
-            #aa_seq += '-'
-    #print "Returning amino acid sequence " + aa_seq
-    #print codon_str
     return aa_seq
 
