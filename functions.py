@@ -168,6 +168,14 @@ def ispolyTpercent(plist, percent):
             pass
     return False
 
+def incr_codon_position(codon_pos):
+    """increments codon counter"""
+    if codon_pos < 3:
+        codon_pos += 1
+    else:
+        codon_pos = 1
+    return codon_pos
+
 def calculate_codons(nuc_seq,codon_pos):
     """returns a list of codons based on reading frame"""
     codon_list = []
@@ -212,10 +220,7 @@ def translate(nuc_seq,codon_pos):
     codon_str = ''
     # special case when sequence starts with an insertion
     if nuc_seq[0] == '-':
-        if codon_pos < 3:
-            codon_pos += 1
-        else:
-            codon_pos = 1
+        codon_pos = incr_codon_position(codon_pos)
     nuc_seq = sanitize(nuc_seq) # remove all gap characters prior to translation
     for codon in calculate_codons(nuc_seq,codon_pos):
         codon_str += codon + ', '

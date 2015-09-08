@@ -19,7 +19,7 @@ from classes import RefPair
 from matrices import Blosum62
 from sequence_alignment import affine_align
 from functions import gulp, compare_seqs, sanitize, build_seqdict, calc_percent,\
-        get_indices, calc_mean, calc_pearson, calc_tvalue, translate
+        get_indices, calc_mean, calc_pearson, calc_tvalue, incr_codon_position, translate
 
 parser = argparse.ArgumentParser(
     description = """Compares editing frequency between aligned genomic/RNA
@@ -143,7 +143,6 @@ for infile in args.infiles:
             if new_ref_seq[i] != '-':
                 if i > 0:
                     ref_pair.incr_all_ref()
-
 
             rpos = ref_pair.index_rposition()
             gpos = ref_pair.index_gposition()
