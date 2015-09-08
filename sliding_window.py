@@ -79,9 +79,7 @@ for infile in args.infiles:
 
     if args.protein:
         san_gen_seq = sanitize(gen_seq)
-        #print san_gen_seq
         san_ref_seq = sanitize(ref_seq)
-        #print san_ref_seq
         ref_pair = RefPair(san_ref_seq,san_gen_seq,name)
 
     i = 0
@@ -89,12 +87,8 @@ for infile in args.infiles:
     while not compare_seqs((gulp(rna_seq, i, size)),
             (gulp(gen_seq, i, size)), num_equal):  #start of alignment
         if gen_seq[i] != '-':
-            #print "genomic nucleotide at position " + str(i) + " is " + gen_seq[i]
-            #print "current genomic codon position is " + str(ref_pair.index_gposition())
             ref_pair.incr_all_gen()
         if ref_seq[i] != '-':
-            #print "reference nucleotide at position " + str(i) + " is " + ref_seq[i]
-            #print "current reference codon position is " + str(ref_pair.index_rposition())
             ref_pair.incr_all_ref()
         i += 1
     while not compare_seqs((gulp(rna_seq[::-1], j, size)),
@@ -104,7 +98,6 @@ for infile in args.infiles:
     new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
     new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
     new_ref_seq = ref_seq[i:(len(ref_seq)-j)]
-    #print new_ref_seq
 
     # calculates % edits between genomic and RNA sequences
     compstr1 = ''
