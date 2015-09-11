@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import re
+import os
 import argparse
 
 from classes import SeqPair
@@ -20,10 +21,13 @@ parser = argparse.ArgumentParser(
     In order to distinguish between genomic and RNA sequences, the user must
     specify a distinguishing string (word or list of characters) present in
     the FASTA header of each (e.g. 'RNA' or 'mRNA' for RNA sequences.""")
-parser.add_argument('infiles', nargs='+', help='list of aligned infiles')
+parser.add_argument('-in', '--infile', help='infile with aligned sequences')
+parser.add_argument('-out', '--outfile', help='name for master outfile')
+parser.add_argument('-n', '--name', help='name to append to output file')
+parser.add_argument('-g', '--gene', help='gene name for output files')
 parser.add_argument('-r', '--RNA', help='unique string present in RNA sequence header')
-parser.add_argument('-g', '--genomic', help='unique string present in genomic sequence headers')
-parser.add_argument('-n', '--numequal', help='number of equal residues out of "size"\
+parser.add_argument('-gen', '--genomic', help='unique string present in genomic sequence headers')
+parser.add_argument('-neq', '--numequal', help='number of equal residues out of "size"\
         to signify start/end of alignment', default=7)
 parser.add_argument('-s', '--size', help='number of residues to compare to determine start/end\
         of an alignment', default=9)
@@ -36,146 +40,152 @@ args = parser.parse_args()
 num_equal = int(args.numequal)
 size = int(args.size)
 percent = int(args.percent)
+name = args.name
+gene = args.gene
 
-m_out = "master_editing_out.csv"
-m_o = open(m_out,'w')
-m_o.write("gene,GC before,GC after,nucleotide length,amino acid length,percent edits,percent edits in first two positions,percent amino acid edits,average edit score")
-if args.polyt:
-    m_o.write(",fraction polyT before,fraction polyT after,fraction " + str(percent) + " percent polyT before,fraction " + str(percent) + " percent polyT after")
+m_out = args.outfile #"master_editing_out.csv"
+# appends if specified file already exists
+if os.path.isfile(m_out):
+    m_o = open(m_out,'a')
 else:
-    pass
-m_o.write("\n" * 2)
-
-for infile in args.infiles:
-    name = infile.split('.')[0]
-    gene = name.split('_')[1]
-
-    b_out = name + "_basic_editing.csv"
-    if args.edits:
-        e_out = name + "_editing_types.txt"
-    if args.codon:
-        c_out = name + "_codon_preference.csv"
-
-    seqdict = {}
-    build_seqdict(infile,seqdict)
-
-    rna_string = str(args.RNA)
-    gen_string = str(args.genomic)
-    for k in seqdict.keys():
-        if re.search(rna_string,k):
-            rna_seq = seqdict.get(k)
-        elif re.search(gen_string,k):
-            gen_seq = seqdict.get(k)
-
-    san_rna_seq = sanitize(rna_seq)
-    san_gen_seq = sanitize(gen_seq)
-    seq_pair = SeqPair(san_rna_seq,san_gen_seq,name)
-
-    i = 0
-    j = 0
-    while not compare_seqs((gulp(rna_seq, i, size)),
-            (gulp(gen_seq, i, size)), num_equal):
-        if gen_seq[i] != '-':
-            seq_pair.incr_all()
-        if rna_seq[i] != '-':
-            seq_pair.incr_mrna()
-        i += 1
-    while not compare_seqs((gulp(rna_seq[::-1], j, size)),
-            (gulp(gen_seq[::-1], j, size)), num_equal):
-        j += 1
-
-    new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
-    new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
-
-    edit_list = []
-    if args.edits:
-        num_edited_res = 0
-
-    for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):  #compare matching regions
-        if rg == '-' and rm != '-':  #insertion in mRNA
-            seq_pair.incr_mrna()
-        elif rm == '-' and rg != '-':  #insertion in DNA
-            seq_pair.incr_all()
-        elif rg == rm:  #residue in both, but no edits
-            if args.codon:
-                if seq_pair.codon_pos != 3 or i < 2:
-                    pass
-                else:
-                    seq_pair.update_gcodons()
-                    seq_pair.update_mcodons()
-            seq_pair.incr_all()
-            seq_pair.incr_mrna()
-        elif rg != rm:  #residue in both, but edited
-            pos = seq_pair.index_nuc() + 1
-            cpos = seq_pair.index_position()
-            gnuc = seq_pair.lookup_gnuc()
-            mnuc = seq_pair.lookup_mnuc()
-            gcod = seq_pair.lookup_gcodon()
-            mcod = seq_pair.lookup_mcodon()
-            gaa = seq_pair.lookup_gaa()
-            maa = seq_pair.lookup_maa()
-            scr = (Blosum62(gaa, maa).sub_score())
-
-            if args.polyt:
-                is_polyt = "N"
-                if i <= 4:
-                    polyt_test_seq = gulp(new_gen_seq, 0, 7)
-                elif i >= len(new_gen_seq) - 4:
-                    polyt_test_seq = gulp(new_gen_seq, len(new_gen_seq)-7, 7)
-                else:
-                    polyt_test_seq = gulp(new_gen_seq, i-3, 7)
-                if polyT(polyt_test_seq):
-                    is_polyt = "Y"
-
-                is_polyt_percent = "N"
-                percent_polyt_seqs = []
-                for y in range(10):
-                    try:
-                        percent_polyt_seqs.append(gulp(new_gen_seq, i-y, 10))
-                    except:
-                        pass
-                if ispolyTpercent(percent_polyt_seqs, percent):
-                    is_polyt_percent = "Y"
-
-            if not args.polyt: #args.basic and not args.polyt:
-                edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr])
-            elif args.polyt: #args.basic and args.polyt:
-                edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr,is_polyt,is_polyt_percent])
-
-            if args.codon:
-                if seq_pair.codon_pos != 3 or i < 2:
-                    pass
-                else:
-                    seq_pair.update_gcodons()
-                    seq_pair.update_mcodons()
-
-            if args.edits:
-                seq_pair.update_transdict()
-                num_edited_res += 1
-
-            seq_pair.incr_all()
-            seq_pair.incr_mrna()
-
+    m_o = open(m_out,'w')
+    m_o.write("gene,GC before,GC after,nucleotide length,amino acid length,percent edits,percent edits in first two positions,percent amino acid edits,average edit score")
     if args.polyt:
-        num_gen_polyt = 0.0
-        num_rna_polyt = 0.0
-        polyt_indices = get_indices(new_gen_seq, 7)
+        m_o.write(",fraction polyT before,fraction polyT after,fraction " + str(percent) + " percent polyT before,fraction " + str(percent) + " percent polyT after")
+    else:
+        pass
+    m_o.write("\n" * 2)
 
-        for start,end in polyt_indices:
-            if polyT(new_gen_seq[start:end]):
-                num_gen_polyt += 1.0
-            if polyT(new_rna_seq[start:end]):
-                num_rna_polyt += 1.0
+#for infile in args.infiles:
+    #name = infile.split('.')[0]
+    #gene = name.split('_')[1]
 
-        num_gen_percent_polyt = 0.0
-        num_rna_percent_polyt = 0.0
-        percent_polyt_indices = get_indices(new_gen_seq, 10)
+b_out = name + "_basic_editing.csv"
+if args.edits:
+    e_out = name + "_editing_types.txt"
+if args.codon:
+    c_out = name + "_codon_preference.csv"
 
-        for start,end in percent_polyt_indices:
-            if polyTpercent(new_gen_seq[start:end], percent):
-                num_gen_percent_polyt += 1.0
-            if polyTpercent(new_rna_seq[start:end], percent):
-                num_rna_percent_polyt += 1.0
+seqdict = {}
+build_seqdict(args.infile,seqdict)
+
+rna_string = str(args.RNA)
+gen_string = str(args.genomic)
+for k in seqdict.keys():
+    if re.search(rna_string,k):
+        rna_seq = seqdict.get(k)
+    elif re.search(gen_string,k):
+        gen_seq = seqdict.get(k)
+
+san_rna_seq = sanitize(rna_seq)
+san_gen_seq = sanitize(gen_seq)
+seq_pair = SeqPair(san_rna_seq,san_gen_seq,name)
+
+i = 0
+j = 0
+while not compare_seqs((gulp(rna_seq, i, size)),
+        (gulp(gen_seq, i, size)), num_equal):
+    if gen_seq[i] != '-':
+        seq_pair.incr_all()
+    if rna_seq[i] != '-':
+        seq_pair.incr_mrna()
+    i += 1
+while not compare_seqs((gulp(rna_seq[::-1], j, size)),
+        (gulp(gen_seq[::-1], j, size)), num_equal):
+    j += 1
+
+new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
+new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
+
+edit_list = []
+if args.edits:
+    num_edited_res = 0
+
+for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):  #compare matching regions
+    if rg == '-' and rm != '-':  #insertion in mRNA
+        seq_pair.incr_mrna()
+    elif rm == '-' and rg != '-':  #insertion in DNA
+        seq_pair.incr_all()
+    elif rg == rm:  #residue in both, but no edits
+        if args.codon:
+            if seq_pair.codon_pos != 3 or i < 2:
+                pass
+            else:
+                seq_pair.update_gcodons()
+                seq_pair.update_mcodons()
+        seq_pair.incr_all()
+        seq_pair.incr_mrna()
+    elif rg != rm:  #residue in both, but edited
+        pos = seq_pair.index_nuc() + 1
+        cpos = seq_pair.index_position()
+        gnuc = seq_pair.lookup_gnuc()
+        mnuc = seq_pair.lookup_mnuc()
+        gcod = seq_pair.lookup_gcodon()
+        mcod = seq_pair.lookup_mcodon()
+        gaa = seq_pair.lookup_gaa()
+        maa = seq_pair.lookup_maa()
+        scr = (Blosum62(gaa, maa).sub_score())
+
+        if args.polyt:
+            is_polyt = "N"
+            if i <= 4:
+                polyt_test_seq = gulp(new_gen_seq, 0, 7)
+            elif i >= len(new_gen_seq) - 4:
+                polyt_test_seq = gulp(new_gen_seq, len(new_gen_seq)-7, 7)
+            else:
+                polyt_test_seq = gulp(new_gen_seq, i-3, 7)
+            if polyT(polyt_test_seq):
+                is_polyt = "Y"
+
+            is_polyt_percent = "N"
+            percent_polyt_seqs = []
+            for y in range(10):
+                try:
+                    percent_polyt_seqs.append(gulp(new_gen_seq, i-y, 10))
+                except:
+                    pass
+            if ispolyTpercent(percent_polyt_seqs, percent):
+                is_polyt_percent = "Y"
+
+        if not args.polyt: #args.basic and not args.polyt:
+            edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr])
+        elif args.polyt: #args.basic and args.polyt:
+            edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr,is_polyt,is_polyt_percent])
+
+        if args.codon:
+            if seq_pair.codon_pos != 3 or i < 2:
+                pass
+            else:
+                seq_pair.update_gcodons()
+                seq_pair.update_mcodons()
+
+        if args.edits:
+            seq_pair.update_transdict()
+            num_edited_res += 1
+
+        seq_pair.incr_all()
+        seq_pair.incr_mrna()
+
+if args.polyt:
+    num_gen_polyt = 0.0
+    num_rna_polyt = 0.0
+    polyt_indices = get_indices(new_gen_seq, 7)
+
+    for start,end in polyt_indices:
+        if polyT(new_gen_seq[start:end]):
+            num_gen_polyt += 1.0
+        if polyT(new_rna_seq[start:end]):
+            num_rna_polyt += 1.0
+
+    num_gen_percent_polyt = 0.0
+    num_rna_percent_polyt = 0.0
+    percent_polyt_indices = get_indices(new_gen_seq, 10)
+
+    for start,end in percent_polyt_indices:
+        if polyTpercent(new_gen_seq[start:end], percent):
+            num_gen_percent_polyt += 1.0
+        if polyTpercent(new_rna_seq[start:end], percent):
+            num_rna_percent_polyt += 1.0
 
         fraction_gen_polyt = (num_gen_polyt/len(polyt_indices)) * 100
         fraction_rna_polyt = (num_rna_polyt/len(polyt_indices)) * 100
