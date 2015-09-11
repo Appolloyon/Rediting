@@ -4,8 +4,8 @@ import subprocess
 import argparse
 
 parser = argparse.ArgumentParser(
-    description = "Calls the editing pipeline program for one or more files",
-    epilog = """This program allows for batch calls of the editing pipeline
+    description = "Calls the sliding window program for one or more files",
+    epilog = """This program allows for batch calls of the sliding window
     program. If files have routine structure and are named in a consistent
     manner including information such as organism and gene name then a simple
     wrapper script such as this can easily automate largescale analysis""")
@@ -27,5 +27,5 @@ for infile in args.infiles:
     short_in = infile.split('.')[0]
     filename_list = short_in.split(delimiter)
     gene = filename_list[genefield]
-    subprocess.call(["total_editing_pipeline.py", "-in", infile, "-out", out,\
-            "-n", short_in, "-g", gene, "-r", rna, "-gen", gen, "-ect", "-p", "70"])
+    subprocess.call(["sliding_window.py", "-in", infile, "-out", out, "-n", short_in,\
+        "-g", gene, "-r", rna, "-gen", gen, "-p"])
