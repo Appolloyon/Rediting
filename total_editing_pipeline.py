@@ -225,8 +225,14 @@ genome amino acid,mRNA amino acid,substitution score")
     numedits = float(len(edit_list))
     seqedits = (numedits/seqlength) * 100
     aaedits = (float(num_aaedits)/aalength) * 100
-    editscore = subscore/numedits
-    fpos = (num_fpos/numedits) * 100
+    try:
+        editscore = subscore/numedits
+    except:
+        editscore = 0
+    try:
+        fpos = (num_fpos/numedits) * 100
+    except:
+        fpos = 0
 
     m_o.write("%s,%.2f,%.2f,%s,%s,%.2f,%.2f,%.2f,%.2f" % (gene,gcb,gca,seqlength,\
             aalength,seqedits,fpos,aaedits,editscore))

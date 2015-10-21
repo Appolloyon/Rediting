@@ -57,6 +57,8 @@ size = int(args.size)
 name = args.name
 gene = args.gene
 
+print args.infile
+
 m_out = args.outfile
 if os.path.isfile(m_out):
     m_o = open(m_out,'a')
@@ -154,13 +156,20 @@ if args.protein:
         rpos = ref_pair.index_rposition()
         gpos = ref_pair.index_gposition()
         rnuc_seq = gulp(new_ref_seq, i, int(window_size))
+        #print "reference nucleotide sequence:" + rnuc_seq
         raa_seq = translate(rnuc_seq,rpos)
+        #print "reference amino acid sequence:" + raa_seq
         gnuc_seq = gulp(new_gen_seq, i, int(window_size))
+        #print "genomic nucleotide sequence:" + gnuc_seq
         gaa_seq = translate(gnuc_seq,gpos)
+        #print "genomic amino acid sequence:" + gaa_seq
 
         if len(rnuc_seq) == int(window_size) and len(gnuc_seq) == int(window_size):
             if len(raa_seq) != len(gaa_seq): # sequence require further alignment
                 raa_seq,gaa_seq = affine_align(raa_seq,gaa_seq)
+                #print raa_seq
+                #print gaa_seq
+                #print
             for raa,gaa in zip(raa_seq,gaa_seq):
                 if raa == '-' or gaa == '-':
                     similarity_sum += 0.0
@@ -171,10 +180,13 @@ if args.protein:
                 else:
                     similarity_sum += 0.0
 
-            try:
-                similarity_list.append((similarity_sum/float(len(raa_seq))*100))
-            except(ValueError,IndexError):
-                pass
+            if similarity_sum == 0.0 or len(raa_seq) == 0:
+                similarity_list.append(0.0)
+            else:
+                try:
+                    similarity_list.append((similarity_sum/float(len(raa_seq))*100))
+                except(ValueError,IndexError,ZeroDivisionError):
+                    pass
 
 edit_mean = calc_mean(edit_list)
 average_list = []
@@ -190,11 +202,17 @@ for edit in edit_list:
     else:
         total_edits += edit
 
-percent_above_average_edits = (edits_above_average/total_edits) * 100
+try:
+    percent_above_average_edits = (edits_above_average/total_edits) * 100
+except:
+    percent_above_average_edits = 0.0
 num_obs = len(edit_list)
 
 identity_mean = calc_mean(identity_list)
-PC = calc_pearson(edit_list, identity_list, edit_mean, identity_mean)
+try:
+    PC = calc_pearson(edit_list, identity_list, edit_mean, identity_mean)
+except:
+    PC = 0.0
 tvalue = calc_tvalue(PC, num_obs)
 
 if args.protein:
