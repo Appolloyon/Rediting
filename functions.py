@@ -131,7 +131,10 @@ def calc_pearson(xvalues, yvalues, xmean, ymean):
         xdenom += ((xvalues[i] - xmean)**2)
         ydenom += ((yvalues[i] - ymean)**2)
     denom = (math.sqrt(xdenom)) * (math.sqrt(ydenom))
-    return num/denom
+    try:
+        return num/denom
+    except:
+        return 0.0
 
 def calc_tvalue(PC, N):
     """Calculates a t value for a given pearson coefficient"""
