@@ -1,1 +1,10 @@
 Files to move into submodule
+
+call_pipeline.py
+call_sliding_window.py
+classes.py
+functions.py
+matrices.py
+sequence_alignment.py
+sliding_window.py
+total_editing_pipeline.py
