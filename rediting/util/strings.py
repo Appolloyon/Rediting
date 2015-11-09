@@ -1,13 +1,9 @@
-"""."""
+"""String utility functions."""
 
 
 def gulp(string, start, gulp_size):
     """get substrings of a string"""
-    gulpstr = ''
-    chars = string[start:start+gulp_size]
-    for char in chars:
-        gulpstr += char
-    return gulpstr
+    return string[start:start+gulp_size]
 
 
 def sanitize(seq):
