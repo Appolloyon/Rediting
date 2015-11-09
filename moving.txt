@@ -3,7 +3,7 @@ Files to move into submodule
 call_pipeline.py
 call_sliding_window.py
 classes.py
-functions.py
+functions.py - moved to rediting/util files
 matrices.py
 sequence_alignment.py
 sliding_window.py
