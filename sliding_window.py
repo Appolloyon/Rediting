@@ -85,16 +85,25 @@ for k in seqdict.keys():
         gen_seq = seqdict.get(k)
     else:
         ref_seq = seqdict.get(k)
+#print rna_seq
+#print gen_seq
 
 if args.protein:
     san_gen_seq = sanitize(gen_seq)
     san_ref_seq = sanitize(ref_seq)
     ref_pair = RefPair(san_ref_seq,san_gen_seq,name)
 
+"""
+Another insidious bug, this comparison can effectively go on
+past the length of the sequence and throw an IndexError
+"""
 i = 0
 j = 0
 while not compare_seqs((gulp(rna_seq, i, size)),
         (gulp(gen_seq, i, size)), num_equal):  #start of alignment
+    #print i
+    #print gen_seq[i]
+    #print ref_seq[i]
     if gen_seq[i] != '-':
         ref_pair.incr_all_gen()
     if ref_seq[i] != '-':
@@ -102,11 +111,22 @@ while not compare_seqs((gulp(rna_seq, i, size)),
     i += 1
 while not compare_seqs((gulp(rna_seq[::-1], j, size)),
         (gulp(gen_seq[::-1], j, size)), num_equal):  #end of alignment
+    #print j
     j += 1
 
 new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
+print rna_seq
+print new_rna_seq
+print
 new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
+print gen_seq
+print new_gen_seq
+print
 new_ref_seq = ref_seq[i:(len(ref_seq)-j)]
+print ref_seq
+print new_ref_seq
+print len(new_ref_seq)
+print
 
 # calculates % edits between genomic and RNA sequences
 compstr1 = ''
@@ -117,13 +137,21 @@ for i, (res1, res2) in enumerate(zip(new_rna_seq, new_gen_seq)):
         compstr1 += str(1)
     else:
         pass
+#print compstr1
 
+"""
+Noted a very insidious bug in the program, namely that if the aligned sequence
+length is less than the window size, there is nothing to compare and the
+program will throw a ZeroDivisionError later on when it attemps to calulcate the
+mean of an empty list
+"""
 edit_list = []
 for start,end in get_indices(compstr1, window_size):
     try:
         edit_list.append(calc_percent(compstr1, start, end, window_size))
     except(ValueError,IndexError):
         pass
+#print edit_list
 
 # calculates % sequence identity beween genomic and reference sequences
 compstr2 = ''
@@ -134,6 +162,7 @@ for i, (res1, res2) in enumerate(zip(new_gen_seq, new_ref_seq)):
         compstr2 += str(0)
     else:
         pass
+#print compstr2
 
 identity_list = []
 for start,end in get_indices(compstr2, window_size):
@@ -141,6 +170,7 @@ for start,end in get_indices(compstr2, window_size):
         identity_list.append(calc_percent(compstr2, start, end, window_size))
     except(ValueError,IndexError):
         pass
+#print identity_list
 
 if args.protein:
     similarity_list = []
@@ -188,10 +218,14 @@ if args.protein:
                 except(ValueError,IndexError,ZeroDivisionError):
                     pass
 
-edit_mean = calc_mean(edit_list)
-average_list = []
-for i in range(len(edit_list)):
-    average_list.append(edit_mean)
+try:
+    edit_mean = calc_mean(edit_list)
+    average_list = []
+    for i in range(len(edit_list)):
+        average_list.append(edit_mean)
+except(ZeroDivisionError):
+    for i in range(len(edit_list)):
+        average_list.append(0.0)
 
 edits_above_average = 0.0
 total_edits = 0.0
@@ -208,6 +242,7 @@ except:
     percent_above_average_edits = 0.0
 num_obs = len(edit_list)
 
+print identity_list
 identity_mean = calc_mean(identity_list)
 try:
     PC = calc_pearson(edit_list, identity_list, edit_mean, identity_mean)
