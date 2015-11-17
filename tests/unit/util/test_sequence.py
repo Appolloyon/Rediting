@@ -85,13 +85,23 @@ class TestSeqs(TestCase):
         indices = sequence.get_non_overlapping_indices(seq,0,2,indices=[])
         self.assertEqual(indices, [[0,2],[2,4],[4,6]])
 
-    @skip("skipped for now")
-    def test_polyT(self):
-        pass
+    # normally test strings of len 7
+    def test_polyT_true(self):
+        seq = 'AATTTTA'
+        self.assertTrue(sequence.polyT(seq))
 
-    @skip("skipped for now")
-    def test_polyTpercent(self):
-        pass
+    def test_polT_false(self):
+        seq = 'ATATTTA'
+        self.assertFalse(sequence.polyT(seq))
+
+    # normally test strings of len 10 and 70%
+    def test_polyTpercent_true(self):
+        seq = 'GCGTTTTTTT'
+        self.assertTrue(sequence.polyTpercent(seq,70))
+
+    def test_polyTpercent_false(self):
+        seq = 'GCGCTTTTTT'
+        self.assertFalse(sequence.polyTpercent(seq,70))
 
     def test_codon_position(self):
         results = []
@@ -110,3 +120,16 @@ class TestSeqs(TestCase):
     def test_calculate_codons3(self):
         seq = 'ATGCTTATTCGG'
         self.assertEqual(sequence.calculate_codons(seq,3), ['TGC','TTA','TTC'])
+
+    # try all three frames for the same sequence
+    def test_translate_frame1(self):
+        seq = 'ATGCTTATTCGG'
+        self.assertEqual(sequence.translate(seq,1), 'MLIR')
+
+    def test_translate_frame2(self):
+        seq = 'ATGCTTATTCGG'
+        self.assertEqual(sequence.translate(seq,2), 'AYS')
+
+    def test_translate_frame3(self):
+        seq = 'ATGCTTATTCGG'
+        self.assertEqual(sequence.translate(seq,3), 'CLF')
