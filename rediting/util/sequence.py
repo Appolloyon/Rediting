@@ -1,5 +1,6 @@
 """."""
 
+import strings
 
 def compare_seqs(seq1, seq2, num_equal):
     """compare substrings to determine start of alignment"""
@@ -82,7 +83,7 @@ def polyT(string):
     """find stretches of 4 or more T's in a row"""
     i = 0
     while i <= len(string) - 4:
-        polyt = gulp(string, i, 4)
+        polyt = strings.gulp(string, i, 4)
         if polyt == 'TTTT':
             return True
         else:
@@ -157,7 +158,7 @@ def translate(nuc_seq,codon_pos):
     # special case when sequence starts with an insertion
     if nuc_seq[0] == '-':
         codon_pos = incr_codon_position(codon_pos)
-    nuc_seq = sanitize(nuc_seq) # remove all gap characters prior to translation
+    nuc_seq = strings.sanitize(nuc_seq) # remove all gap characters prior to translation
     for codon in calculate_codons(nuc_seq,codon_pos):
         codon_str += codon + ', '
         aa = '-'
