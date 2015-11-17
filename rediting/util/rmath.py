@@ -2,6 +2,7 @@
 
 import math
 
+from sequence import polyTpercent
 
 def calc_mean(values):
     """Calculates mean of a set of values"""
