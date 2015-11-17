@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest import skip
+#from unittest import skip
 
 from rediting.util import sequence
 
