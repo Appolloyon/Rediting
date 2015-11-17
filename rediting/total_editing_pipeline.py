@@ -2,6 +2,7 @@
 
 import re
 import os
+import sys
 import argparse
 
 from classes import SeqPair
@@ -83,16 +84,20 @@ seq_pair = SeqPair(san_rna_seq,san_gen_seq,name)
 
 i = 0
 j = 0
-while not compare_seqs((gulp(rna_seq, i, size)),
-        (gulp(gen_seq, i, size)), num_equal):
-    if gen_seq[i] != '-':
-        seq_pair.incr_all()
-    if rna_seq[i] != '-':
-        seq_pair.incr_mrna()
-    i += 1
-while not compare_seqs((gulp(rna_seq[::-1], j, size)),
-        (gulp(gen_seq[::-1], j, size)), num_equal):
-    j += 1
+try:
+    while not compare_seqs((gulp(rna_seq, i, size)),
+            (gulp(gen_seq, i, size)), num_equal):
+        if gen_seq[i] != '-':
+            seq_pair.incr_all()
+        if rna_seq[i] != '-':
+            seq_pair.incr_mrna()
+        i += 1
+    while not compare_seqs((gulp(rna_seq[::-1], j, size)),
+            (gulp(gen_seq[::-1], j, size)), num_equal):
+        j += 1
+except(IndexError):
+    print "Could not discern aligned part of sequences"
+    sys.exit(0)
 
 new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
 new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
@@ -272,4 +277,3 @@ genome amino acid,mRNA amino acid,substitution score")
             e_o.write("C to G: {}\n".format(seq_pair.transition_dict.get('c_g')))
 
 m_o.close()
-

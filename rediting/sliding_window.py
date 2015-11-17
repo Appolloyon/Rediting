@@ -2,6 +2,7 @@
 
 import re
 import os
+import sys
 import argparse
 import matplotlib.pyplot as plt
 
@@ -58,10 +59,6 @@ else:
         m_o.write(",amino acid pearson correlation,amino acid t value")
     m_o.write("\n" * 2)
 
-#for infile in args.infiles:
-    #name = infile.split('.')[0]
-    #gene = name.split('_')[1]
-
 seqdict = {}
 build_seqdict(args.infile,seqdict)
 
@@ -74,8 +71,6 @@ for k in seqdict.keys():
         gen_seq = seqdict.get(k)
     else:
         ref_seq = seqdict.get(k)
-#print rna_seq
-#print gen_seq
 
 if args.protein:
     san_gen_seq = sanitize(gen_seq)
@@ -88,34 +83,24 @@ past the length of the sequence and throw an IndexError
 """
 i = 0
 j = 0
-while not compare_seqs((gulp(rna_seq, i, size)),
-        (gulp(gen_seq, i, size)), num_equal):  #start of alignment
-    #print i
-    #print gen_seq[i]
-    #print ref_seq[i]
-    if gen_seq[i] != '-':
-        ref_pair.incr_all_gen()
-    if ref_seq[i] != '-':
-        ref_pair.incr_all_ref()
-    i += 1
-while not compare_seqs((gulp(rna_seq[::-1], j, size)),
-        (gulp(gen_seq[::-1], j, size)), num_equal):  #end of alignment
-    #print j
-    j += 1
+try:
+    while not compare_seqs((gulp(rna_seq, i, size)),
+            (gulp(gen_seq, i, size)), num_equal):  #start of alignment
+        if gen_seq[i] != '-':
+            ref_pair.incr_all_gen()
+        if ref_seq[i] != '-':
+            ref_pair.incr_all_ref()
+        i += 1
+    while not compare_seqs((gulp(rna_seq[::-1], j, size)),
+            (gulp(gen_seq[::-1], j, size)), num_equal):  #end of alignment
+        j += 1
+except(IndexError):
+    print "Could not discern aligned part of sequences"
+    sys.exit(0)
 
 new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
-print rna_seq
-print new_rna_seq
-print
 new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
-print gen_seq
-print new_gen_seq
-print
 new_ref_seq = ref_seq[i:(len(ref_seq)-j)]
-print ref_seq
-print new_ref_seq
-print len(new_ref_seq)
-print
 
 # calculates % edits between genomic and RNA sequences
 compstr1 = ''
@@ -175,20 +160,13 @@ if args.protein:
         rpos = ref_pair.index_rposition()
         gpos = ref_pair.index_gposition()
         rnuc_seq = gulp(new_ref_seq, i, int(window_size))
-        #print "reference nucleotide sequence:" + rnuc_seq
         raa_seq = translate(rnuc_seq,rpos)
-        #print "reference amino acid sequence:" + raa_seq
         gnuc_seq = gulp(new_gen_seq, i, int(window_size))
-        #print "genomic nucleotide sequence:" + gnuc_seq
         gaa_seq = translate(gnuc_seq,gpos)
-        #print "genomic amino acid sequence:" + gaa_seq
 
         if len(rnuc_seq) == int(window_size) and len(gnuc_seq) == int(window_size):
             if len(raa_seq) != len(gaa_seq): # sequence require further alignment
                 raa_seq,gaa_seq = affine_align(raa_seq,gaa_seq)
-                #print raa_seq
-                #print gaa_seq
-                #print
             for raa,gaa in zip(raa_seq,gaa_seq):
                 if raa == '-' or gaa == '-':
                     similarity_sum += 0.0
@@ -231,7 +209,6 @@ except:
     percent_above_average_edits = 0.0
 num_obs = len(edit_list)
 
-print identity_list
 identity_mean = calc_mean(identity_list)
 try:
     PC = calc_pearson(edit_list, identity_list, edit_mean, identity_mean)
