@@ -54,7 +54,8 @@ def get_indices(string, window_size):
     """Returns a list of start and end coordinates for windows"""
     indices = []
     w = int(window_size)
-    for i in range(len(string) - w):
+    # range takes up to the last number, therefore use 'w-1'
+    for i in range(len(string) - (w-1)):
         try:
             index_low = i
             index_high = i + w
