@@ -6,11 +6,13 @@ import sys
 import argparse
 import matplotlib.pyplot as plt
 
-from classes import SeqPair, RefPair
-from matrices import Blosum62
-from sequence_alignment import affine_align
-from functions import gulp, compare_seqs, sanitize, build_seqdict, calc_percent,\
-        get_indices, calc_mean, calc_pearson, calc_tvalue, translate
+#from classes import SeqPair, RefPair
+#from matrices import Blosum62
+#from sequence_alignment import affine_align
+#from functions import gulp, compare_seqs, sanitize, build_seqdict, calc_percent,\
+#        get_indices, calc_mean, calc_pearson, calc_tvalue, translate
+from classes import classes, matrices
+from util import sequence_alignment, files, rmath, sequence, strings
 
 parser = argparse.ArgumentParser(
     description = """Compares editing frequency between aligned genomic/RNA
@@ -39,6 +41,7 @@ parser.add_argument('-s', '--size', help='number of residues to compare to deter
         start/end of an alignment', default=9)
 parser.add_argument('-w', '--window_size', help='size of sliding window', default=60)
 parser.add_argument('-p', '--protein', action='store_true', help='compare conceptual translations as well')
+parser.add_argument('-o', '--synonymous', action='store_true', help='only record synonymous edits')
 args = parser.parse_args()
 
 window_size = float(args.window_size)
@@ -60,7 +63,7 @@ else:
     m_o.write("\n" * 2)
 
 seqdict = {}
-build_seqdict(args.infile,seqdict)
+files.build_seqdict(args.infile,seqdict)
 
 rna_string = str(args.RNA)
 gen_string = str(args.genomic)
@@ -73,9 +76,13 @@ for k in seqdict.keys():
         ref_seq = seqdict.get(k)
 
 if args.protein:
-    san_gen_seq = sanitize(gen_seq)
-    san_ref_seq = sanitize(ref_seq)
-    ref_pair = RefPair(san_ref_seq,san_gen_seq,name)
+    san_gen_seq = strings.sanitize(gen_seq)
+    san_ref_seq = strings.sanitize(ref_seq)
+    ref_pair = classes.RefPair(san_ref_seq,san_gen_seq,name)
+if args.synonymous:
+    san_gen_seq = strings.sanitize(gen_seq)
+    san_rna_seq = strings.sanitize(rna_seq)
+    seq_pair = classes.SeqPair(san_rna_seq,san_gen_seq,name)
 
 """
 Another insidious bug, this comparison can effectively go on
@@ -84,15 +91,22 @@ past the length of the sequence and throw an IndexError
 i = 0
 j = 0
 try:
-    while not compare_seqs((gulp(rna_seq, i, size)),
-            (gulp(gen_seq, i, size)), num_equal):  #start of alignment
+    while not sequence.compare_seqs((strings.gulp(rna_seq, i, size)),
+            (strings.gulp(gen_seq, i, size)), num_equal):  #start of alignment
         if gen_seq[i] != '-':
-            ref_pair.incr_all_gen()
+            if args.protein:
+                ref_pair.incr_all_gen()
+            if args.synonymous:
+                seq_pair.incr_all()
         if ref_seq[i] != '-':
-            ref_pair.incr_all_ref()
+            if args.protein:
+                ref_pair.incr_all_ref()
+        if rna_seq[i] != '-':
+            if args.synonymous:
+                seq_pair.incr_mrna()
         i += 1
-    while not compare_seqs((gulp(rna_seq[::-1], j, size)),
-            (gulp(gen_seq[::-1], j, size)), num_equal):  #end of alignment
+    while not sequence.compare_seqs((strings.gulp(rna_seq[::-1], j, size)),
+            (strings.gulp(gen_seq[::-1], j, size)), num_equal):  #end of alignment
         j += 1
 except(IndexError):
     print "Could not discern aligned part of sequences"
@@ -104,11 +118,42 @@ new_ref_seq = ref_seq[i:(len(ref_seq)-j)]
 
 # calculates % edits between genomic and RNA sequences
 compstr1 = ''
-for i, (res1, res2) in enumerate(zip(new_rna_seq, new_gen_seq)):
-    if (res1 == '-' or res2 == '-') or res1 == res2:
+for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
+    if rg == '-' and rm != '-': # insertion in mRNA
         compstr1 += str(0)
-    elif res1 != res2:
-        compstr1 += str(1)
+        if args.synonymous:
+            seq_pair.incr_mrna()
+    elif rm == '-' and rg != '-': # insertion in DNA
+        compstr1 += str(0)
+        if args.synonymous:
+            seq_pair.incr_all()
+    elif rg == '-' and rm == '-': # gap in both
+        compstr1 += str(0)
+    elif rg == rm: # redisude in both, but no edits
+        compstr1 += str(0)
+        if args.synonymous:
+            seq_pair.incr_all()
+            seq_pair.incr_mrna()
+    elif rg != rm: # residue in both but edited
+        #print("edit detected")
+        #print("rg is: %s" % (rg))
+        #print("genomic nucleotide is: %s" % (seq_pair.lookup_gnuc()))
+        #print("genomic amino acid is: %s" % (seq_pair.lookup_gaa()))
+        #print("rm is: %s" % (rm))
+        #print("mrna nucleotide is:    %s" % (seq_pair.lookup_mnuc()))
+        #print("mrna amino acid is:    %s" % (seq_pair.lookup_maa()))
+        #print
+        if args.synonymous:
+            if seq_pair.lookup_gaa() == seq_pair.lookup_maa():
+                print("amino acids equal, not adding to edit list")
+                compstr1 += str(0)
+            # We ignore synonymous edits
+            elif seq_pair.lookup_gaa() != seq_pair.lookup_maa():
+                compstr1 += str(1)
+            seq_pair.incr_all()
+            seq_pair.incr_mrna()
+        else:
+            compstr1 += str(1)
     else:
         pass
 #print compstr1
@@ -120,9 +165,9 @@ program will throw a ZeroDivisionError later on when it attemps to calulcate the
 mean of an empty list
 """
 edit_list = []
-for start,end in get_indices(compstr1, window_size):
+for start,end in sequence.get_indices(compstr1, window_size):
     try:
-        edit_list.append(calc_percent(compstr1, start, end, window_size))
+        edit_list.append(sequence.calc_percent(compstr1, start, end, window_size))
     except(ValueError,IndexError):
         pass
 #print edit_list
@@ -139,9 +184,9 @@ for i, (res1, res2) in enumerate(zip(new_gen_seq, new_ref_seq)):
 #print compstr2
 
 identity_list = []
-for start,end in get_indices(compstr2, window_size):
+for start,end in sequence.get_indices(compstr2, window_size):
     try:
-        identity_list.append(calc_percent(compstr2, start, end, window_size))
+        identity_list.append(sequence.calc_percent(compstr2, start, end, window_size))
     except(ValueError,IndexError):
         pass
 #print identity_list
@@ -159,20 +204,20 @@ if args.protein:
 
         rpos = ref_pair.index_rposition()
         gpos = ref_pair.index_gposition()
-        rnuc_seq = gulp(new_ref_seq, i, int(window_size))
-        raa_seq = translate(rnuc_seq,rpos)
-        gnuc_seq = gulp(new_gen_seq, i, int(window_size))
-        gaa_seq = translate(gnuc_seq,gpos)
+        rnuc_seq = strings.gulp(new_ref_seq, i, int(window_size))
+        raa_seq = sequence.translate(rnuc_seq,rpos)
+        gnuc_seq = strings.gulp(new_gen_seq, i, int(window_size))
+        gaa_seq = sequence.translate(gnuc_seq,gpos)
 
         if len(rnuc_seq) == int(window_size) and len(gnuc_seq) == int(window_size):
             if len(raa_seq) != len(gaa_seq): # sequence require further alignment
-                raa_seq,gaa_seq = affine_align(raa_seq,gaa_seq)
+                raa_seq,gaa_seq = sequence_alignment.affine_align(raa_seq,gaa_seq)
             for raa,gaa in zip(raa_seq,gaa_seq):
                 if raa == '-' or gaa == '-':
                     similarity_sum += 0.0
                 elif raa == gaa:
                     similarity_sum += 1.0
-                elif Blosum62(raa,gaa).sub_score() > 0:
+                elif matrices.Blosum62(raa,gaa).sub_score() > 0:
                     similarity_sum += 0.5
                 else:
                     similarity_sum += 0.0
@@ -186,7 +231,7 @@ if args.protein:
                     pass
 
 try:
-    edit_mean = calc_mean(edit_list)
+    edit_mean = rmath.calc_mean(edit_list)
     average_list = []
     for i in range(len(edit_list)):
         average_list.append(edit_mean)
@@ -209,17 +254,17 @@ except:
     percent_above_average_edits = 0.0
 num_obs = len(edit_list)
 
-identity_mean = calc_mean(identity_list)
+identity_mean = rmath.calc_mean(identity_list)
 try:
-    PC = calc_pearson(edit_list, identity_list, edit_mean, identity_mean)
+    PC = rmath.calc_pearson(edit_list, identity_list, edit_mean, identity_mean)
 except:
     PC = 0.0
-tvalue = calc_tvalue(PC, num_obs)
+tvalue = rmath.calc_tvalue(PC, num_obs)
 
 if args.protein:
-    similarity_mean = calc_mean(similarity_list)
-    aa_PC = calc_pearson(edit_list, similarity_list, edit_mean, similarity_mean)
-    aa_tvalue = calc_tvalue(aa_PC, num_obs)
+    similarity_mean = rmath.calc_mean(similarity_list)
+    aa_PC = rmath.calc_pearson(edit_list, similarity_list, edit_mean, similarity_mean)
+    aa_tvalue = rmath.calc_tvalue(aa_PC, num_obs)
 
 #if args.long_output:
 m_o.write("%s,%.2f,%d,%d,%f,%f" % (name,percent_above_average_edits,num_obs,(num_obs - 2),PC,tvalue))
