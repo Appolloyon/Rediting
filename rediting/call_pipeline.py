@@ -27,5 +27,5 @@ for infile in args.infiles:
     short_in = infile.split('.')[0]
     filename_list = short_in.split(delimiter)
     gene = filename_list[genefield]
-    subprocess.call(["total_editing_pipeline.py", "-in", infile, "-out", out,\
+    subprocess.call(["/Users/cklinger/git/Rediting/rediting/total_editing_pipeline.py", "-in", infile, "-out", out,\
             "-n", short_in, "-g", gene, "-r", rna, "-gen", gen, "-ect", "-p", "70"])
