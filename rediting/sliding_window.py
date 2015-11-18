@@ -6,7 +6,7 @@ import sys
 import argparse
 import matplotlib.pyplot as plt
 
-from classes import RefPair
+from classes import SeqPair, RefPair
 from matrices import Blosum62
 from sequence_alignment import affine_align
 from functions import gulp, compare_seqs, sanitize, build_seqdict, calc_percent,\
