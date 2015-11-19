@@ -63,13 +63,14 @@ files.build_seqdict(args.infile,seqdict)
 
 rna_string = str(args.RNA)
 gen_string = str(args.genomic)
+# Sequences must be in upper-case
 for k in seqdict.keys():
     if re.search(rna_string,k):
-        rna_seq = seqdict.get(k)
+        rna_seq = seqdict.get(k).upper()
     elif re.search(gen_string,k):
-        gen_seq = seqdict.get(k)
+        gen_seq = seqdict.get(k).upper()
     else:
-        ref_seq = seqdict.get(k)
+        ref_seq = seqdict.get(k).upper()
 
 if args.protein:
     san_gen_seq = strings.sanitize(gen_seq)
@@ -165,6 +166,7 @@ for start,end in sequence.get_indices(compstr1, window_size):
     try:
         edit_list.append(sequence.calc_percent(
             compstr1, start, end, window_size))
+    # This error should not get thrown, but just in case
     except(ValueError,IndexError):
         pass
 
@@ -232,6 +234,16 @@ if args.protein:
                             (similarity_sum/float(len(raa_seq))*100))
                 except(ValueError,IndexError,ZeroDivisionError):
                     pass
+
+print
+print "name of sequence: %s" % (args.name)
+print "length of compstr1: %s" % (len(compstr1))
+print "length of edit list: %s" % (len(edit_list))
+print "length of compstr2: %s" % (len(compstr2))
+print "length of identity_list: %s" % (len(identity_list))
+if args.protein:
+    print "length of similarity_list: %s" % (len(similarity_list))
+print
 
 # Get the average of all edits over windows
 try:

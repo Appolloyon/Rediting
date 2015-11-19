@@ -68,11 +68,12 @@ files.build_seqdict(args.infile,seqdict)
 
 rna_string = str(args.RNA)
 gen_string = str(args.genomic)
+# Sequences must be in upper-case
 for k in seqdict.keys():
     if re.search(rna_string,k):
-        rna_seq = seqdict.get(k)
+        rna_seq = seqdict.get(k).upper()
     elif re.search(gen_string,k):
-        gen_seq = seqdict.get(k)
+        gen_seq = seqdict.get(k).upper()
 
 # We directly compare aligned sequences, but class implementation uses
 # unaligned sequences (i.e. no gap characters '-')

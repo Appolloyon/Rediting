@@ -129,6 +129,8 @@ class SeqPair(object):
             for e in self.gnuc_aa_dict.get(k1):
                 if e == codon:
                     return k1
+        # Contingency in case of non-canonical bases
+        return 'X'
 
     def lookup_maa(self):
         """returns aa specified by mRNA codon"""
@@ -137,6 +139,8 @@ class SeqPair(object):
             for e in self.mnuc_aa_dict.get(k1):
                 if e == codon:
                     return k1
+        # Contingency in case of non-canonical bases
+        return 'X'
 
     def update_gcodons(self):
         """updates DNA dict based on codon retrieved"""
