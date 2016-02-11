@@ -49,8 +49,9 @@ if os.path.isfile(m_out):
 else:
     m_o = open(m_out,'w')
     m_o.write("gene,GC before,GC after,nucleotide length,amino acid length,"
-        "percent edits,percent edits in first two positions,"
-        "percent amino acid edits,average edit score")
+        "number edits,percent edits,first position edits,second position edits,"
+        "third position edits,percent edits in first two positions,percent non-synonymous edit,"
+        "number amino acid edits,percent amino acid edits,average edit score")
     if args.polyt:
         m_o.write(",fraction polyT before,fraction polyT after,fraction " +
             str(percent) + " percent polyT before,fraction " + str(percent)
@@ -217,88 +218,105 @@ if args.polyt:
         fraction_rna_percent_polyt = (num_rna_percent_polyt/
                 len(percent_polyt_indices)) * 100
 
-    subscore = 0
-    num_aaedits = 0
-    num_fpos = 0
-    with open(b_out,'w') as b_o:
-        b_o.write("position,codon position,genome base,mRNAbase,genome codon,"
-            "mRNA codon,genome amino acid,mRNA amino acid,substitution score")
-        if args.polyt:
-            b_o.write(",in a polyT tract,in a tract with " +
-                    str(percent) + " percent T residues")
-        b_o.write("\n" * 2)
-        if args.polyt:
-            for P, C, GN, MN, GC, MC, GA, MA, S, IP, IPP in edit_list:
-                b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s"
-                        % (P,C,GN,MN,GC,MC,GA,MA,S,IP,IPP) + "\n")
-                subscore += int(S)
-                if GA != MA:
-                    num_aaedits += 1
-                if C == 1 or C == 2:
-                    num_fpos += 1
-        else:
-            for P, C, GN, MN, GC, MC, GA, MA, S in edit_list:
-                b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" %
-                        (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
-                subscore += int(S)
-                if GA != MA:
-                    num_aaedits += 1
-                if C == 1 or C == 2:
-                    num_fpos += 1
-
-    gcb = sequence.calc_gc(new_gen_seq)
-    gca = sequence.calc_gc(new_rna_seq)
-    seqlength = len(new_rna_seq)
-    aalength = seqlength/3
-    numedits = float(len(edit_list))
-    seqedits = (numedits/seqlength) * 100
-    aaedits = (float(num_aaedits)/aalength) * 100
-    try:
-        editscore = subscore/numedits
-    # If no residues are edited then this will throw an error
-    except(ZeroDivisionError):
-        editscore = 0
-    # Again, same error will occur if numedits is zero
-    try:
-        fpos = (num_fpos/numedits) * 100
-    except(ZeroDivisionError):
-        fpos = 0
-
-    m_o.write("%s,%.2f,%.2f,%s,%s,%.2f,%.2f,%.2f,%.2f" % (gene,gcb,gca,seqlength,\
-            aalength,seqedits,fpos,aaedits,editscore))
+subscore = 0
+num_aaedits = 0
+num_first_pos = 0
+num_second_pos = 0
+num_third_pos = 0
+with open(b_out,'w') as b_o:
+    b_o.write("position,codon position,genome base,mRNAbase,genome codon,"
+        "mRNA codon,genome amino acid,mRNA amino acid,substitution score")
     if args.polyt:
-        m_o.write(",%.2f,%.2f,%.2f,%.2f" % (fraction_gen_polyt,fraction_rna_polyt,\
-            fraction_gen_percent_polyt,fraction_rna_percent_polyt))
-    m_o.write("\n")
+        b_o.write(",in a polyT tract,in a tract with " +
+                str(percent) + " percent T residues")
+    b_o.write("\n" * 2)
+    if args.polyt:
+        for P, C, GN, MN, GC, MC, GA, MA, S, IP, IPP in edit_list:
+            b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s"
+                    % (P,C,GN,MN,GC,MC,GA,MA,S,IP,IPP) + "\n")
+            subscore += int(S)
+            if GA != MA:
+                num_aaedits += 1
+            if C == 1:
+                num_first_pos += 1
+            if C == 2:
+                num_second_pos += 1
+            if C == 3:
+                num_third_pos += 1
+    else:
+        for P, C, GN, MN, GC, MC, GA, MA, S in edit_list:
+            b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" %
+                    (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
+            subscore += int(S)
+            if GA != MA:
+                num_aaedits += 1
+            if C == 1:
+                num_first_pos += 1
+            if C == 2:
+                num_second_pos += 1
+            if C == 3:
+                num_third_pos += 1
 
-    if args.codon:
-        with open(c_out,'w') as c_o:
-            c_o.write("amino acid,codon,genome usage,mRNA usage")
+gcb = sequence.calc_gc(new_gen_seq)
+gca = sequence.calc_gc(new_rna_seq)
+seqlength = len(new_rna_seq)
+aalength = seqlength/3
+numedits = float(len(edit_list))
+seqedits = (numedits/seqlength) * 100
+aaedits = (float(num_aaedits)/aalength) * 100
+
+# If no residues are edited then this will throw an error
+try:
+    non_syn = (float(num_aaedits)/numedits)
+except(ZeroDivisionError):
+    non_syn = 0
+# Again, same error will occur if numedits is zero
+try:
+    editscore = subscore/numedits
+except(ZeroDivisionError):
+    editscore = 0
+# Again, same error will occur if numedits is zero
+try:
+    first_two_pos = ((num_first_pos + num_second_pos)/numedits) * 100
+except(ZeroDivisionError):
+    first_two_pos = 0
+
+m_o.write("%s,%.2f,%.2f,%s,%s,%s,%.2f,%s,%s,%s,%.2f,%.2f,%s,%.2f,%.2f" % (gene,\
+        gcb,gca,seqlength,aalength,numedits,seqedits,num_first_pos,num_second_pos,\
+        num_third_pos,first_two_pos,non_syn,num_aaedits,aaedits,editscore))
+if args.polyt:
+    m_o.write(",%.2f,%.2f,%.2f,%.2f" % (fraction_gen_polyt,fraction_rna_polyt,\
+        fraction_gen_percent_polyt,fraction_rna_percent_polyt))
+m_o.write("\n")
+
+if args.codon:
+    with open(c_out,'w') as c_o:
+        c_o.write("amino acid,codon,genome usage,mRNA usage")
+        c_o.write("\n")
+        # loop through both dictionaries
+        for k1, k2 in zip(seq_pair.gnuc_aa_dict, seq_pair.mnuc_aa_dict):
+            c_o.write(k1)
+            for k3, k4 in zip(seq_pair.gnuc_aa_dict[k1].keys(),\
+                    seq_pair.mnuc_aa_dict[k2].keys()):
+                c_o.write(',' + k3 + ',' + str(seq_pair.gnuc_aa_dict[k1][k3])\
+                        + ',' + str(seq_pair.mnuc_aa_dict[k1][k4]) + "\n")
             c_o.write("\n")
-            # loop through both dictionaries
-            for k1, k2 in zip(seq_pair.gnuc_aa_dict, seq_pair.mnuc_aa_dict):
-                c_o.write(k1)
-                for k3, k4 in zip(seq_pair.gnuc_aa_dict[k1].keys(),\
-                        seq_pair.mnuc_aa_dict[k2].keys()):
-                    c_o.write(',' + k3 + ',' + str(seq_pair.gnuc_aa_dict[k1][k3])\
-                            + ',' + str(seq_pair.mnuc_aa_dict[k1][k4]) + "\n")
-                c_o.write("\n")
 
-    if args.edits:
-        with open(e_out,'w') as e_o:
-            e_o.write("Total number of unequal residues: {}\n".format(num_edited_res))
-            e_o.write("Number of transitions: \n")
-            e_o.write("A to T: {}\n".format(seq_pair.transition_dict.get('a_t')))
-            e_o.write("A to G: {}\n".format(seq_pair.transition_dict.get('a_g')))
-            e_o.write("A to C: {}\n".format(seq_pair.transition_dict.get('a_c')))
-            e_o.write("T to A: {}\n".format(seq_pair.transition_dict.get('t_a')))
-            e_o.write("T to G: {}\n".format(seq_pair.transition_dict.get('t_g')))
-            e_o.write("T to C: {}\n".format(seq_pair.transition_dict.get('t_c')))
-            e_o.write("G to A: {}\n".format(seq_pair.transition_dict.get('g_a')))
-            e_o.write("G to T: {}\n".format(seq_pair.transition_dict.get('g_t')))
-            e_o.write("G to C: {}\n".format(seq_pair.transition_dict.get('g_c')))
-            e_o.write("C to A: {}\n".format(seq_pair.transition_dict.get('c_a')))
-            e_o.write("C to T: {}\n".format(seq_pair.transition_dict.get('c_t')))
-            e_o.write("C to G: {}\n".format(seq_pair.transition_dict.get('c_g')))
+if args.edits:
+    with open(e_out,'w') as e_o:
+        e_o.write("Total number of unequal residues: {}\n".format(num_edited_res))
+        e_o.write("Number of transitions: \n")
+        e_o.write("A to T: {}\n".format(seq_pair.transition_dict.get('a_t')))
+        e_o.write("A to G: {}\n".format(seq_pair.transition_dict.get('a_g')))
+        e_o.write("A to C: {}\n".format(seq_pair.transition_dict.get('a_c')))
+        e_o.write("T to A: {}\n".format(seq_pair.transition_dict.get('t_a')))
+        e_o.write("T to G: {}\n".format(seq_pair.transition_dict.get('t_g')))
+        e_o.write("T to C: {}\n".format(seq_pair.transition_dict.get('t_c')))
+        e_o.write("G to A: {}\n".format(seq_pair.transition_dict.get('g_a')))
+        e_o.write("G to T: {}\n".format(seq_pair.transition_dict.get('g_t')))
+        e_o.write("G to C: {}\n".format(seq_pair.transition_dict.get('g_c')))
+        e_o.write("C to A: {}\n".format(seq_pair.transition_dict.get('c_a')))
+        e_o.write("C to T: {}\n".format(seq_pair.transition_dict.get('c_t')))
+        e_o.write("C to G: {}\n".format(seq_pair.transition_dict.get('c_g')))
 
 m_o.close()
