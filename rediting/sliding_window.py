@@ -36,7 +36,7 @@ parser.add_argument('-s', '--size', help='number of residues to compare to deter
         start/end of an alignment', default=9)
 parser.add_argument('-w', '--window_size', help='size of sliding window', default=60)
 parser.add_argument('-p', '--protein', action='store_true', help='compare conceptual translations as well')
-parser.add_argument('-o', '--synonymous', action='store_true', help='only record synonymous edits')
+parser.add_argument('-o', '--synonymous', action='store_true', help='only record non-synonymous edits')
 args = parser.parse_args()
 
 window_size = float(args.window_size)
@@ -168,6 +168,7 @@ for start,end in sequence.get_indices(compstr1, window_size):
             compstr1, start, end, window_size))
     # This error should not get thrown, but just in case
     except(ValueError,IndexError):
+        print "Error detected while adding to edit_list"
         pass
 
 # Calculates % sequence identity beween genomic and reference sequences
@@ -187,18 +188,13 @@ for start,end in sequence.get_indices(compstr2, window_size):
         identity_list.append(sequence.calc_percent(
             compstr2, start, end, window_size))
     except(ValueError,IndexError):
+        print "Error detected while adding to identity_list"
         pass
 
 if args.protein:
     similarity_list = []
     for i, (rg,rr) in enumerate(zip(new_gen_seq, new_ref_seq)):
         similarity_sum = 0.0
-        if new_gen_seq[i] != '-':
-            if i > 0:
-                ref_pair.incr_all_gen()
-        if new_ref_seq[i] != '-':
-            if i > 0:
-                ref_pair.incr_all_ref()
 
         rpos = ref_pair.index_rposition()
         gpos = ref_pair.index_gposition()
@@ -212,6 +208,13 @@ if args.protein:
             # If the lengths aren't equal, align them
             if len(raa_seq) != len(gaa_seq):
                 raa_seq,gaa_seq = sequence_alignment.affine_align(raa_seq,gaa_seq)
+            #print "Rnuc_seq is: " + rnuc_seq
+            #print "Rpos is: " + str(rpos)
+            #print "Raa_seq is: " + raa_seq
+
+            #print "Gnuc_seq is: " + gnuc_seq
+            #print "Gpos is: " + str(gpos)
+            #print "Gaa_seq is: " + gaa_seq
             # Determine how similar raa_seq and gaa_seq are
             for raa,gaa in zip(raa_seq,gaa_seq):
                 # Gaps are neutral
@@ -226,6 +229,10 @@ if args.protein:
                 else:
                     similarity_sum += 0.0
 
+            #print "Similarity sum is: " + str(similarity_sum)
+            #print
+            #print
+
             if similarity_sum == 0.0 or len(raa_seq) == 0:
                 similarity_list.append(0.0)
             else:
@@ -233,17 +240,26 @@ if args.protein:
                     similarity_list.append(
                             (similarity_sum/float(len(raa_seq))*100))
                 except(ValueError,IndexError,ZeroDivisionError):
+                    print "Error detected while adding to similarity_list"
                     pass
+
+        if new_gen_seq[i] != '-':
+            #if i > 0:
+            ref_pair.incr_all_gen()
+        if new_ref_seq[i] != '-':
+            #if i > 0:
+            ref_pair.incr_all_ref()
+
 
 print
 print "name of sequence: %s" % (args.name)
-print "length of compstr1: %s" % (len(compstr1))
-print "length of edit list: %s" % (len(edit_list))
-print "length of compstr2: %s" % (len(compstr2))
-print "length of identity_list: %s" % (len(identity_list))
-if args.protein:
-    print "length of similarity_list: %s" % (len(similarity_list))
-print
+#print "length of compstr1: %s" % (len(compstr1))
+#print "length of edit list: %s" % (len(edit_list))
+#print "length of compstr2: %s" % (len(compstr2))
+#print "length of identity_list: %s" % (len(identity_list))
+#if args.protein:
+#    print "length of similarity_list: %s" % (len(similarity_list))
+#print
 
 # Get the average of all edits over windows
 try:
@@ -254,6 +270,7 @@ try:
 # If no edits occurred, then edit_list is empty
 # and calc_mean will throw a ZeroDivError
 except(ZeroDivisionError):
+    print "Zero Div Error calculating edit_mean"
     for i in range(len(edit_list)):
         average_list.append(0.0)
 
@@ -272,6 +289,7 @@ try:
     percent_above_average_edits = (edits_above_average/total_edits) * 100
 # Again, if no edits occured this will throw an error
 except(ZeroDivisionError):
+    print "Zero Div Error calculating above average edits"
     percent_above_average_edits = 0.0
 num_obs = len(edit_list)
 
@@ -282,6 +300,7 @@ try:
 # This calculation can fail, especially if edit_list is 0 length
 # In that case, just call it 0
 except:
+    print "Error in calculating nuc PC"
     PC = 0.0
 tvalue = rmath.calc_tvalue(PC, num_obs)
 
@@ -291,6 +310,7 @@ if args.protein:
         aa_PC = rmath.calc_pearson(edit_list,
             similarity_list, edit_mean, similarity_mean)
     except:
+        print "Error in calculating amino acid PC"
         aa_PC = 0.0
     aa_tvalue = rmath.calc_tvalue(aa_PC, num_obs)
 
