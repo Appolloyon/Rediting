@@ -156,8 +156,9 @@ def translate(nuc_seq,codon_pos):
     aa_seq = ''
     codon_str = ''
     # special case when sequence starts with an insertion
-    if nuc_seq[0] == '-':
-        codon_pos = incr_codon_position(codon_pos)
+    #if nuc_seq[0] == '-' and start == True:
+        #print "Increasing codon position to deal with internal gap"
+        #codon_pos = incr_codon_position(codon_pos)
     nuc_seq = strings.sanitize(nuc_seq) # remove all gap characters prior to translation
     for codon in calculate_codons(nuc_seq,codon_pos):
         codon_str += codon + ', '
@@ -170,3 +171,42 @@ def translate(nuc_seq,codon_pos):
             aa = '-'
         aa_seq += aa
     return aa_seq
+
+def check_indices(start,stop):
+    """returns True if indices are good and False if not"""
+    if stop < start:
+        return False
+    elif (stop - start + 1) < 3:
+        return False
+    elif (stop - start + 1) % 3 != 0:
+        return False
+    else:
+        return True
+
+def expand_indices(start,stop,indices):
+    """returns a single list of index values for multiple
+    start, stop pairs"""
+    stop = stop + 1
+    while start < stop:
+        indices.append(start)
+        start += 1
+
+def close_gap(i,codon_pos):
+    """returns an index for the end of a gap"""
+    if codon_pos == 1:
+        end = i - 1
+    elif codon_pos == 2:
+        end = i - 2
+    elif codon_pos == 3:
+        end = i - 3
+    return end
+
+def trim_sequence(seq,indices):
+    """returns a sequence lacking residues corresponding to indices"""
+    new_seq = ''
+    for i,res in enumerate(seq):
+        if i in indices:
+            pass
+        else:
+            new_seq += res
+    return new_seq
