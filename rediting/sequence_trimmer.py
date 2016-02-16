@@ -25,7 +25,8 @@ args = parser.parse_args()
 
 for infile in args.infiles:
     basename = infile.rsplit('.',1)[0] #everything before final period
-    outfile = basename + "_trimmed.fa"
+    out_align = basename + "_trimmed.afa"
+    out_seq = basename + "_trimmed.fa"
 
     seqdict = {}
     files.build_seqdict(infile,seqdict)
@@ -108,11 +109,14 @@ for infile in args.infiles:
         if sequence.check_indices(start,stop):
             sequence.expand_indices(start,stop,ref_indices)
 
-    new_ref_seq = sequence.trim_sequence(ref_seq,ref_indices)
-    new_gen_seq = sequence.trim_sequence(gen_seq,gen_indices)
-    new_rna_seq = sequence.trim_sequence(rna_seq,gen_indices)
+    indices = list(set(ref_indices) | set(gen_indices))
+    #print indices
 
-    with open(outfile,'w') as o:
+    new_ref_seq = sequence.trim_sequence(ref_seq,indices)#ref_indices)
+    new_gen_seq = sequence.trim_sequence(gen_seq,indices)#gen_indices)
+    new_rna_seq = sequence.trim_sequence(rna_seq,indices)#gen_indices)
+
+    with open(out_align,'w') as o:
         o.write(">" + ref_header + "\n")
         for chunk in strings.split_input(new_ref_seq,60):
             o.write(chunk + "\n")
@@ -122,3 +126,14 @@ for infile in args.infiles:
         o.write(">" + rna_header + "\n")
         for chunk in strings.split_input(new_rna_seq,60):
             o.write(chunk + "\n")
+
+    with open(out_seq,'w') as o2:
+        o2.write(">" + ref_header + "\n")
+        for chunk in strings.split_input(strings.sanitize(new_ref_seq),60):
+            o2.write(chunk + "\n")
+        o2.write(">" + gen_header + "\n")
+        for chunk in strings.split_input(strings.sanitize(new_gen_seq),60):
+            o2.write(chunk + "\n")
+        o2.write(">" + rna_header + "\n")
+        for chunk in strings.split_input(strings.sanitize(new_rna_seq),60):
+            o2.write(chunk + "\n")
