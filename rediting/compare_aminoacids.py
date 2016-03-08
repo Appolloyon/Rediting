@@ -32,28 +32,28 @@ size = int(args.size)
 name = args.name
 gene = args.gene
 
-# create a "master" outfile to collate data from multiple files
+# Create a "master" outfile to collate data from multiple files
 m_out = args.outfile
-# appends if specified file already exists
+# Appends if specified file already exists
 if os.path.isfile(m_out):
     m_o = open(m_out,'a')
 else:
-    # the first time the file is opened, write header lines
+    # The first time the file is opened, write header lines
     m_o = open(m_out,'w')
     m_o.write("gene,num AA changes,num identical before,num identical after,"
         "num similar before,num similar after,avgerage edit score diff")
     m_o.write("\n" * 2)
 
-# each independent file is also used to create its own file
+# Each independent file is also used to create its own file
 b_out = name + "_aminoacid_changes.csv"
 
-# load sequence data into a data structure for internal use
+# Load sequence data into a data structure for internal use
 seqdict = {}
 files.build_seqdict(args.infile,seqdict)
 
 rna_string = str(args.RNA)
 gen_string = str(args.genomic)
-# sequences must be in upper-case
+# Sequences must be in upper-case
 for k in seqdict.keys():
     if re.search(rna_string,k):
         rna_seq = seqdict.get(k).upper()
