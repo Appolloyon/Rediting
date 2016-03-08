@@ -6,6 +6,7 @@ this code is based off code publically available at: https://github.com
 /dnase/affine-gap-sequence-alignment/blob/master/alignment.py. The author
 greatly appreciates code contribution from the above source."""
 
+
 from classes.matrices import Blosum62
 import numpy as np
 

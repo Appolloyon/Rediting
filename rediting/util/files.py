@@ -1,7 +1,8 @@
-"""."""
+#!/usr/bin/env python
 
 """This module contains functions pertaining to dealing with reading from
 files and organizing the resulting data into data structures."""
+
 
 def nonblank_lines(f):
     """read file lines, but skip blank lines"""

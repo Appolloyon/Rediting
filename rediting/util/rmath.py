@@ -1,8 +1,9 @@
-"""."""
+#!/usr/bin/env python
 
 """This module includes functions to calculate various metrics. This
 includes simple calculations such as mean, but also specific calcs for
 things like pearson correlation coefficient and polyT"""
+
 
 import math
 

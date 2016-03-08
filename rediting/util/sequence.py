@@ -1,9 +1,10 @@
-"""."""
+#!/usr/bin/env python
 
 """This module contains code related to the analysis of sequences. This
 includes code related to comparisons and calculations, but also several
 functions related to calculating indices and translating stand alone
 nucleotide sequences into their amino acid equivalents"""
+
 
 import strings
 

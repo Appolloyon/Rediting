@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """This module contains string utility functions."""
 
 
