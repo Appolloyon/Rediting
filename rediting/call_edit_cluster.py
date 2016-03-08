@@ -20,7 +20,8 @@ rna = args.RNA
 out = args.outfile
 
 for infile in args.infiles:
-    # gets the basename of the file
+    # Gets the basename of the file
     short_in = infile.rsplit('.',1)[0]
+    # For each file, call the program
     subprocess.call(["/Users/cklinger/git/Rediting/rediting/detect_edit_clusters.py",
         "-in", infile, "-out", out, "-n", short_in, "-r", rna, "-gen", gen])
