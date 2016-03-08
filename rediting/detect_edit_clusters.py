@@ -31,14 +31,19 @@ num_equal = int(args.numequal)
 size = int(args.size)
 name = args.name
 
+# Create a "master" outfile to collate data from multiple files
 m_out = args.outfile
+# Appends if specified file already exists
 if os.path.isfile(m_out):
     m_o = open(m_out,'a')
 else:
+    # The first time the file is opened, write header lines
     m_o = open(m_out,'w')
-    m_o.write("name,average edit rate,percent above average edits")
+    m_o.write("name,total edits,edits above average,edits at or below average,"
+        "percent above average edits")
     m_o.write("\n" * 2)
 
+# Load sequence data into a data structure for internal use
 seqdict = {}
 files.build_seqdict(args.infile,seqdict)
 
@@ -55,6 +60,8 @@ for k in seqdict.keys():
 i = 0
 j = 0
 try:
+    # Compare genomic and RNA sequences to find local regions of good
+    # similarity, this is taken as the start and end of aligned region
     while not sequence.compare_seqs((strings.gulp(rna_seq, i, size)),
             (strings.gulp(gen_seq, i, size)), num_equal):
         i += 1
@@ -67,6 +74,7 @@ except(IndexError):
     # Exit cleanly
     sys.exit(0)
 
+# Once we know the start and end, simply chop off everything else
 new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
 new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
 
@@ -80,21 +88,29 @@ if (len(new_rna_seq) < window_size or
     sys.exit(0)
 
 # Calculate % edits between genomic and RNA sequences
+num_total_edits = 0
 compstr1 = ''
 for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
+    # Insertion in mrna
     if rg == '-' and rm != '-':
         compstr1 += str(0)
+    # Insertion in genomic
     elif rm == '-' and rg != '-':
         compstr1 += str(0)
+    # No edits
     elif rg == rm:
         compstr1 += str(0)
+    # Edit
     elif rg != rm:
+        # The value 1 here indicates an edit
         compstr1 += str(1)
+        num_total_edits += 1
     else:
         pass
 
 # Calculates percent edits for each window
 edit_list = []
+# Gets all full-length windows possible for length of aligned sequences
 for start,end in sequence.get_indices(compstr1, window_size):
     try:
         edit_list.append(sequence.calc_percent(
@@ -105,6 +121,8 @@ for start,end in sequence.get_indices(compstr1, window_size):
         pass
 
 # Get the average of all edits over windows
+# Note that this will likely differ slightly from
+# a global calculation, i.e. value/len*100
 try:
     edit_mean = rmath.calc_mean(edit_list)
 # If no edits occurred, then edit_list is empty
@@ -116,22 +134,37 @@ except(ZeroDivisionError):
 # Determine how many edits are above the average
 edits_above_average = 0.0
 total_edits = 0.0
+# Here we calculate edits based on the actual percent in each window
 for edit in edit_list:
     if edit > edit_mean:
         total_edits += edit
         edits_above_average += edit
     else:
         total_edits += edit
+# Whatever is left becomes "other"
+other_edits = total_edits - edits_above_average
 
 # Determine percent of edits above average
 try:
     percent_above_average_edits = (edits_above_average/total_edits) * 100
+    percent_other_edits = (other_edits/total_edits) * 100
 # Again, if no edits occured this will throw an error
 except(ZeroDivisionError):
     print "Zero Div Error calculating above average edits"
     percent_above_average_edits = 0.0
+    percent_other_edits = 0.0
 
-m_o.write("%s,%.2f,%.2f" % (name,edit_mean,percent_above_average_edits))
+# This seems like an odd way to calculate it, but we need to convert
+# a percent over many windows back to a number
+num_above_average = round((percent_above_average_edits/100) * num_total_edits)
+num_other = round((percent_other_edits/100) * num_total_edits)
+try:
+    percent_diff = (num_above_average/num_total_edits) * 100
+except(ZeroDivisionError):
+    percent_diff = 0.0
+
+m_o.write("%s,%s,%s,%s,%.2f" % (name,num_total_edits,num_above_average,\
+        num_other,percent_diff))
 m_o.write("\n")
 
 # Finally close the output file again
