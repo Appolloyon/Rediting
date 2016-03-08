@@ -27,7 +27,7 @@ out = args.outfile
 
 for infile in args.infiles:
     # gets the basename of the file
-    short_in = infile.split('.')[0]
+    short_in = infile.rsplit('.',1)[0]
     # next two lines get the gene name
     filename_list = short_in.split(delimiter)
     gene = filename_list[genefield]
