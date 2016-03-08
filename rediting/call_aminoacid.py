@@ -32,6 +32,6 @@ for infile in args.infiles:
     filename_list = short_in.split(delimiter)
     gene = filename_list[genefield]
     # for each file, call the program
-    subprocess.call(["/Users/cklinger/git/Rediting/rediting/compare_aminoacids.py",\
-            "-in", infile, "-out", out, "-n", short_in, "-g", gene, "-r", rna,\
+    subprocess.call(["/Users/cklinger/git/Rediting/rediting/compare_aminoacids.py",
+            "-in", infile, "-out", out, "-n", short_in, "-g", gene, "-r", rna,
             "-gen", gen])
