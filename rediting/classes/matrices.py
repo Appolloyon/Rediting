@@ -3,7 +3,10 @@
 from numpy import matrix
 
 class Blosum62(object):
-    """Class to implement Blosum62 scoring matrix"""
+    """Class to implement Blosum62 scoring matrix. Other matrices could
+    be implemented by writing new classes or by simply changing the values
+    of the matrix. In the future it might be useful to write code to take
+    a text file or other formatted matrix as input."""
 
     blosum = matrix([
             [ 4,-1,-2,-2, 0,-1,-1, 0,-2,-1,-1,-1,-1,-2,-1, 1, 0,-3,-2, 0, 0],
@@ -28,6 +31,8 @@ class Blosum62(object):
             [ 0,-3,-3,-3,-1,-2,-2,-3,-3, 3, 1,-2, 1,-1,-2,-2, 0,-3,-1, 4, 0],
             [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
+    # we need to be able to determine which row and column correspond to each
+    # amino acid, the simplest way is to just index it
     aa_index = {'A':0, 'R':1, 'N':2, 'D':3, 'C':4, 'Q':5, 'E':6, 'G':7, 'H':8,
             'I':9, 'L':10, 'K':11, 'M':12, 'F':13, 'P':14, 'S':15, 'T':16, 'W':17,
             'Y':18, 'V':19, 'STOP':20}
@@ -35,6 +40,9 @@ class Blosum62(object):
     def __init__(self, aa1, aa2):
         self.aa1 = aa1
         self.aa2 = aa2
+        # initialized with the two amino acids to look up
+        # in both cases, if we can't find the right amino acid
+        # it is treated as a STOP codon
         try:
             self.iaa1 = int(Blosum62.aa_index.get(aa1))
         except(TypeError,ValueError):
@@ -47,5 +55,3 @@ class Blosum62(object):
     def sub_score(self):
         score = Blosum62.blosum.item((self.iaa1,self.iaa2))
         return score
-
-
