@@ -10,7 +10,11 @@ from util import files, sequence, strings
 
 parser = argparse.ArgumentParser(
     description = """Calculates amino acids before and after editing to a reference""",
-    epilog = """Write some kind of description here.""")
+    epilog = """Unlike the other programs in this suite that take aligned nucleotide
+        sequences as input, this program is designed to work with aligned amino acid
+        sequences instead. It will simply go through each sequence and determine
+        whether the amino acid changes observed between genomic and RNA sequences
+        make the resulting sequence more or less similar to the reference sequence.""")
 parser.add_argument('-in', '--infile', help='infile with aligned sequences')
 parser.add_argument('-out', '--outfile', help='name for master outfile')
 parser.add_argument('-n', '--name', help='name to append to outfile file')
@@ -28,24 +32,28 @@ size = int(args.size)
 name = args.name
 gene = args.gene
 
+# create a "master" outfile to collate data from multiple files
 m_out = args.outfile
 # appends if specified file already exists
 if os.path.isfile(m_out):
     m_o = open(m_out,'a')
 else:
+    # the first time the file is opened, write header lines
     m_o = open(m_out,'w')
     m_o.write("gene,num AA changes,num identical before,num identical after,"
         "num similar before,num similar after,avgerage edit score diff")
     m_o.write("\n" * 2)
 
+# each independent file is also used to create its own file
 b_out = name + "_aminoacid_changes.csv"
 
+# load sequence data into a data structure for internal use
 seqdict = {}
 files.build_seqdict(args.infile,seqdict)
 
 rna_string = str(args.RNA)
 gen_string = str(args.genomic)
-# Sequences must be in upper-case
+# sequences must be in upper-case
 for k in seqdict.keys():
     if re.search(rna_string,k):
         rna_seq = seqdict.get(k).upper()
@@ -60,9 +68,13 @@ j = 0
 # Need to keep track of gen index
 gen_index = 0
 try:
+    # Compare genomic and RNA sequences to find local regions of good
+    # similarity, this is taken as the start and end of aligned region
     while not sequence.compare_seqs((strings.gulp(rna_seq, i, size)),
             (strings.gulp(gen_seq, i, size)), num_equal):
         if gen_seq[i] != '-':
+            # If there is actually an amino acid in the genomic sequence
+            # we need to move the index ahead
             gen_index += 1
         i += 1
     while not sequence.compare_seqs((strings.gulp(rna_seq[::-1], j, size)),
@@ -74,44 +86,49 @@ except(IndexError):
     # Exit cleanly
     sys.exit(0)
 
+# Once we know the start and end, simply chop off everything else
 new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
-#print new_rna_seq
 new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
-#print new_gen_seq
 new_ref_seq = ref_seq[i:(len(ref_seq)-j)]
 
 edit_list = []
 
-# calculates amino acid edits
+# Calculates amino acid edits
 for i, (rg,rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
     ident_before = 'N'
     ident_after = 'N'
     sim_before = 'N'
     sim_after = 'N'
-    # insert in mrna sequence
+    # Insert in mrna sequence
     if rg == '-' and rm != '-':
         pass
-    # insert in genomic sequence
+    # Insert in genomic sequence
     elif rg != '-' and rm == '-':
-        # don't do anything, but move the index along
+        # Don't do anything, but move the index along
         gen_index += 1
-    # gaps in both sequences, no edits possible
+    # Gaps in both sequences, no edits possible
     elif rg == '-' and rm == '-':
         pass
-    # no edits, but move the index along
+    # No edits, but move the index along
     elif rg == rm:
         gen_index += 1
-    # edit detected
+    # Edit detected
     elif rg != rm:
         ref_aa = new_ref_seq[i]
-        # we only care about edits we can actually compare
+        # We only care about edits we can actually compare
         if ref_aa != '-':
+            # Check for identity
             if rg == ref_aa:
                 ident_before = 'Y'
             if rm == ref_aa:
                 ident_after = 'Y'
+            # Get the relevant score from Blosum62
+            # Similar amino acids have positive scores
             scr_before = matrices.Blosum62(rg,ref_aa).sub_score()
             scr_after = matrices.Blosum62(rm,ref_aa).sub_score()
+            # Check for similarity
+            # Note that while both cannot be identical, they can
+            # both be similar
             if scr_before > 0:
                 sim_before = 'Y'
             if scr_after > 0:
@@ -136,7 +153,9 @@ with open(b_out,'w') as b_o:
     for P, RA, GA, MA, IB, IA, SB, SA, D in edit_list:
         b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" %
             (P,RA,GA,MA,IB,IA,SB,SA,D) + "\n")
+        # Sum up all score differences to calculate and average later
         diff_score += int(D)
+        # Keep a running tally on global values
         if IB == 'Y':
             num_ident_before += 1
         if IA == 'Y':
@@ -146,9 +165,11 @@ with open(b_out,'w') as b_o:
         if SA == 'Y':
             num_similar_after += 1
 
+# Each edit is one entry in the list of lists
 numedits = float(len(edit_list))
 try:
     avg_diff = diff_score/numedits
+# If there are no edits, then this will throw an error
 except(ZeroDivisionError):
     avg_diff = 0
 
