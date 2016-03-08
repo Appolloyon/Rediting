@@ -17,15 +17,21 @@ parser.add_argument('-r', '--RNA', help='unique string present in RNA sequence h
 parser.add_argument('-out', '--outfile', help='name for master outfile')
 args = parser.parse_args()
 
+# determines how to split filenames
 delimiter = args.delimiter
+# given delimeter, which filename field has the gene name
 genefield = int(args.genefield) - 1
 gen = args.genomic
 rna = args.RNA
 out = args.outfile
 
 for infile in args.infiles:
+    # gets the basename of the file
     short_in = infile.split('.')[0]
+    # next two lines get the gene name
     filename_list = short_in.split(delimiter)
     gene = filename_list[genefield]
-    subprocess.call(["/Users/cklinger/git/Rediting/rediting/total_editing_pipeline.py", "-in", infile, "-out", out,\
-            "-n", short_in, "-g", gene, "-r", rna, "-gen", gen, "-ect", "-p", "70"])
+    # for each file, call the program
+    subprocess.call(["/Users/cklinger/git/Rediting/rediting/total_editing_pipeline.py",
+        "-in", infile, "-out", out, "-n", short_in, "-g", gene, "-r", rna,
+        "-gen", gen, "-ect", "-p", "70"])
