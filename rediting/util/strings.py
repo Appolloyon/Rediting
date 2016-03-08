@@ -1,10 +1,9 @@
-"""String utility functions."""
+"""This module contains string utility functions."""
 
 
 def gulp(string, start, gulp_size):
     """get substrings of a string"""
     return string[start:start+gulp_size]
-
 
 def sanitize(seq):
     """remove gap characters"""
@@ -20,6 +19,8 @@ def split_input(string, chunk_size):
     """split a string into multiple substrings"""
     num_chunks = len(string)/chunk_size
     if (len(string) % chunk_size != 0):
+        # This last chunk is not the same size, but string
+        # slicing takes care of the details for us
         num_chunks += 1
     output = []
     for i in range(0, num_chunks):
