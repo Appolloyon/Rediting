@@ -42,11 +42,13 @@ percent = int(args.percent)
 name = args.name
 gene = args.gene
 
+# Create a "master" outfile to collate data from multiple files
 m_out = args.outfile
-# appends if specified file already exists
+# Appends if specified file already exists
 if os.path.isfile(m_out):
     m_o = open(m_out,'a')
 else:
+    # The first time the file is opened, write header lines
     m_o = open(m_out,'w')
     m_o.write("gene,GC before,GC after,nucleotide length,amino acid length,"
         "number edits,percent edits,first position edits,second position edits,"
@@ -58,12 +60,15 @@ else:
             + " percent polyT after")
     m_o.write("\n" * 2)
 
+# In addition to the master file, create separate outfile(s)
+# depending on which program conditions are specified
 b_out = name + "_basic_editing.csv"
 if args.edits:
     e_out = name + "_editing_types.txt"
 if args.codon:
     c_out = name + "_codon_preference.csv"
 
+# Load sequence data into a data structure for internal use
 seqdict = {}
 files.build_seqdict(args.infile,seqdict)
 
@@ -82,12 +87,16 @@ san_rna_seq = strings.sanitize(rna_seq)
 san_gen_seq = strings.sanitize(gen_seq)
 seq_pair = classes.SeqPair(san_rna_seq,san_gen_seq,name)
 
-# Need to find beginning and end of aligned region
+# Find beginning and end of aligned region
 i = 0
 j = 0
 try:
+    # Compare genomic and RNA sequences to find local regions of good
+    # similarity, this is taken as the start and end of aligned region
     while not sequence.compare_seqs((strings.gulp(rna_seq, i, size)),
             (strings.gulp(gen_seq, i, size)), num_equal):
+        # If we find residues in either sequence, we need to increment
+        # certain class values accordingly
         if gen_seq[i] != '-':
             seq_pair.incr_all()
         if rna_seq[i] != '-':
@@ -102,6 +111,7 @@ except(IndexError):
     # Exit cleanly
     sys.exit(0)
 
+# Once we know the start and end, simply chop off everything else
 new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
 new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
 
@@ -111,10 +121,10 @@ if args.edits:
 
 # Compare matching regions and look for unequal residues (edits)
 for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
-    # If there is an insertion in the RNA only
+    # There is an insertion in the RNA only
     if rg == '-' and rm != '-':
         seq_pair.incr_mrna()
-    # If there is an insertion in the DNA only
+    # There is an insertion in the DNA only
     elif rm == '-' and rg != '-':
         seq_pair.incr_all()
     # Base present in both, but no editing
@@ -130,7 +140,7 @@ for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
         seq_pair.incr_mrna()
     # Base present in both, but there is an edit!
     elif rg != rm:
-        pos = seq_pair.index_nuc() + 1
+        pos = seq_pair.index_nuc() + 1 # Index is different than position
         cpos = seq_pair.index_position()
         gnuc = seq_pair.lookup_gnuc()
         mnuc = seq_pair.lookup_mnuc()
@@ -140,7 +150,10 @@ for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
         maa = seq_pair.lookup_maa()
         scr = (matrices.Blosum62(gaa, maa).sub_score())
 
+        # We can identify whether the residue is present in a region of local
+        # 'T' concentration, i.e. polyT
         if args.polyt:
+            # Test whether the base is in a region of 4 or more sequential 'T's
             is_polyt = "N"
             # Only look at first seven bases at the start
             if i <= 4:
@@ -151,19 +164,24 @@ for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
                         len(new_gen_seq)-7, 7)
             # In the middle take 3 bases on either side (seven total)
             else:
+                # Determine whether the region fits the definition of "polyT"
                 polyt_test_seq = strings.gulp(new_gen_seq, i-3, 7)
             if sequence.polyT(polyt_test_seq):
                 is_polyt = "Y"
 
+            # Test whether the base is present in region of X % 'T'
             is_polyt_percent = "N"
             percent_polyt_seqs = []
-            for y in range(10):
+            for y in range(10): # i.e. for 10 base window
                 try:
                     percent_polyt_seqs.append(
                             strings.gulp(new_gen_seq, i-y, 10))
+                    # This should return a list of multiple overlapping
+                    # 10 base windows to test for polyT
                 # Should only fail towards end of sequence
                 except(IndexError):
                     pass
+            # Check whether any of the identified windows have X % 'T'
             if rmath.ispolyTpercent(percent_polyt_seqs, percent):
                 is_polyt_percent = "Y"
 
@@ -173,6 +191,7 @@ for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
             edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr,
                 is_polyt,is_polyt_percent])
 
+        # Only update codons if we care about them
         if args.codon:
             if seq_pair.codon_pos != 3 or i < 2:
                 pass
@@ -180,6 +199,7 @@ for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
                 seq_pair.update_gcodons()
                 seq_pair.update_mcodons()
 
+        # Only update transitions if we care about them
         if args.edits:
             seq_pair.update_transdict()
             num_edited_res += 1
@@ -187,11 +207,13 @@ for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
         seq_pair.incr_all()
         seq_pair.incr_mrna()
 
-# Since polyT does not rely on presence/absence of edits per se, simplest
+# This next part simply counts the number of polyT regions in genomic and RNA
+# sequences. Since this does not rely on presence/absence of edits per se, simplest
 # thing to do is to run through each sequence again and count total occurrence
 if args.polyt:
     num_gen_polyt = 0.0
     num_rna_polyt = 0.0
+    # Generate all overlapping 7bp windows
     polyt_indices = sequence.get_indices(new_gen_seq, 7)
 
     for start,end in polyt_indices:
@@ -202,6 +224,7 @@ if args.polyt:
 
     num_gen_percent_polyt = 0.0
     num_rna_percent_polyt = 0.0
+    # Generate all overlapping 10bp windows
     percent_polyt_indices = sequence.get_indices(new_gen_seq, 10)
 
     for start,end in percent_polyt_indices:
@@ -211,6 +234,8 @@ if args.polyt:
             num_rna_percent_polyt += 1.0
 
         # Calculate the fraction, since we take overlapping indices
+        # Specifically this is the fraction of all possible windows
+        # and so is related to, but distinct from, sequence length
         fraction_gen_polyt = (num_gen_polyt/len(polyt_indices)) * 100
         fraction_rna_polyt = (num_rna_polyt/len(polyt_indices)) * 100
         fraction_gen_percent_polyt = (num_gen_percent_polyt/
@@ -224,17 +249,22 @@ num_first_pos = 0
 num_second_pos = 0
 num_third_pos = 0
 with open(b_out,'w') as b_o:
+    # Write header line for each gene sheet
     b_o.write("position,codon position,genome base,mRNAbase,genome codon,"
         "mRNA codon,genome amino acid,mRNA amino acid,substitution score")
     if args.polyt:
+        # Add columns if polyT
         b_o.write(",in a polyT tract,in a tract with " +
                 str(percent) + " percent T residues")
     b_o.write("\n" * 2)
+
     if args.polyt:
         for P, C, GN, MN, GC, MC, GA, MA, S, IP, IPP in edit_list:
             b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s"
                     % (P,C,GN,MN,GC,MC,GA,MA,S,IP,IPP) + "\n")
+            # Keep a running tally of total sub score
             subscore += int(S)
+            # Count certain global values
             if GA != MA:
                 num_aaedits += 1
             if C == 1:
@@ -244,6 +274,7 @@ with open(b_out,'w') as b_o:
             if C == 3:
                 num_third_pos += 1
     else:
+        # Fewer values in each list entry without polyT
         for P, C, GN, MN, GC, MC, GA, MA, S in edit_list:
             b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" %
                     (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
@@ -257,24 +288,32 @@ with open(b_out,'w') as b_o:
             if C == 3:
                 num_third_pos += 1
 
+# Simple % GC calculation for genomic and RNA sequences
 gcb = sequence.calc_gc(new_gen_seq)
 gca = sequence.calc_gc(new_rna_seq)
+# This is technically the length of the aligned sequences
 seqlength = len(new_rna_seq)
+# The amino acid sequence length is currently implemented as a simple division
+# of the sequence length by three. Might change this for the final program, i.e.
+# by getting the length of the conceptual translation of the sequence instead
 aalength = seqlength/3
 numedits = float(len(edit_list))
+# Percent edits as compared to the aligned region
 seqedits = (numedits/seqlength) * 100
 aaedits = (float(num_aaedits)/aalength) * 100
 
 # If no residues are edited then this will throw an error
 try:
-    non_syn = (float(num_aaedits)/numedits)
+    non_syn = (float(num_aaedits)/numedits) * 100
 except(ZeroDivisionError):
     non_syn = 0
 # Again, same error will occur if numedits is zero
+
 try:
     editscore = subscore/numedits
 except(ZeroDivisionError):
     editscore = 0
+
 # Again, same error will occur if numedits is zero
 try:
     first_two_pos = ((num_first_pos + num_second_pos)/numedits) * 100
@@ -293,13 +332,16 @@ if args.codon:
     with open(c_out,'w') as c_o:
         c_o.write("amino acid,codon,genome usage,mRNA usage")
         c_o.write("\n")
-        # loop through both dictionaries
-        for k1, k2 in zip(seq_pair.gnuc_aa_dict, seq_pair.mnuc_aa_dict):
+        # Loop through both dictionaries - if we don't sort these
+        # beforehand we won't necessarily get the same value for each
+        # as dictionaries are not ordered
+        for k1, k2 in zip(sorted(seq_pair.gnuc_aa_dict),\
+                sorted(seq_pair.mnuc_aa_dict)):
             c_o.write(k1)
-            for k3, k4 in zip(seq_pair.gnuc_aa_dict[k1].keys(),\
-                    seq_pair.mnuc_aa_dict[k2].keys()):
+            for k3, k4 in zip(sorted(seq_pair.gnuc_aa_dict[k1].keys()),\
+                    sorted(seq_pair.mnuc_aa_dict[k2].keys())):
                 c_o.write(',' + k3 + ',' + str(seq_pair.gnuc_aa_dict[k1][k3])\
-                        + ',' + str(seq_pair.mnuc_aa_dict[k1][k4]) + "\n")
+                        + ',' + str(seq_pair.mnuc_aa_dict[k2][k4]) + "\n")
             c_o.write("\n")
 
 if args.edits:
