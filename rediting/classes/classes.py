@@ -7,11 +7,14 @@ class SeqPair(object):
         self.name = name
         self.mseq = mseq
         self.gseq = gseq
-        self.gnuc_index = 0  # initialize counter for index in gen sequence
-        self.mnuc_index = 0  # initialize counter for index in mRNA sequence
-        self.codon_pos = 1 # keep track of position in codon
-        # these dicts need to be separate as they are populated separately
-        # this could in theory be done more succintly with a deep copy
+        # Next two lines initialize index counters
+        self.gnuc_index = 0
+        self.mnuc_index = 0
+        # Could keep track of codon position in each but we take
+        # the genomic sequence as correct, in case of indels, etc.
+        self.codon_pos = 1
+        # These dicts need to be separate as they are populated separately
+        # This could in theory be done more succintly with a deep copy
         self.gnuc_aa_dict = {
             'F':{'TTT':0,'TTC':0},
             'L':{'TTA':0,'TTG':0,'CTT':0,'CTC':0,'CTA':0,'CTG':0},
@@ -58,8 +61,8 @@ class SeqPair(object):
             'G':{'GGT':0,'GGC':0,'GGA':0,'GGG':0},
             'STOP':{'TAA':0,'TAG':0,'TGA':0}
             }
-        # unlike the last two dict which keep track of codons
-        # this last dict is to track all possible base changes
+        # Unlike the last two dict which keep track of codons
+        # This last dict is to track all possible base changes
         self.transition_dict = {
             'a_t':0, 'a_g':0, 'a_c':0,
             't_a':0, 't_g':0, 't_c':0,
@@ -91,11 +94,11 @@ class SeqPair(object):
     def incr_pos(self):
         """maintains position within a codon as 1, 2, or 3"""
         if self.codon_pos < 3:
-            # if less than three we simply increment
+            # If less than three we simply increment
             self.codon_pos += 1
         else:
-            # if the codon position hits three than we
-            # cannot increment and need to reset it to 1
+            # If the codon position hits three than we
+            # Cannot increment and need to reset it to 1
             self.codon_pos = 1
 
     def incr_all(self):
@@ -113,20 +116,20 @@ class SeqPair(object):
 
     def lookup_gcodon(self):
         """returns DNA index as a codon"""
-        # uses codon position to determine slice
+        # Uses codon position to determine slice
         if self.codon_pos == 1:
-            # gets current and next two
+            # Gets current and next two
             return self.gseq[self.index_nuc():(self.index_nuc()+3)]
         elif self.codon_pos == 2:
-            # gets one behind and one in front
+            # Gets one behind and one in front
             return self.gseq[(self.index_nuc()-1):(self.index_nuc()+2)]
         else:
-            # gets two behind and current
+            # Gets two behind and current
             return self.gseq[(self.index_nuc()-2):self.index_nuc()+1]
 
     def lookup_mcodon(self):
         """returns mRNA index as a codon"""
-        # exact same mechanic as for gcodons
+        # Exact same mechanic as for gcodons
         if self.codon_pos == 1:
             return self.mseq[self.index_mrna():(self.index_mrna()+3)]
         elif self.codon_pos == 2:
@@ -136,30 +139,30 @@ class SeqPair(object):
 
     def lookup_gaa(self):
         """returns aa specified by DNA codon"""
-        # uses aa dict but does not populate it
+        # Uses aa dict but does not populate it
         codon = self.lookup_gcodon()
         for k1 in self.gnuc_aa_dict.keys():
             for e in self.gnuc_aa_dict.get(k1):
                 if e == codon:
                     return k1
-        # contingency in case of non-canonical bases
+        # Contingency in case of non-canonical bases
         return 'X'
 
     def lookup_maa(self):
         """returns aa specified by mRNA codon"""
-        # uses aa dict but does not populate it
+        # Uses aa dict but does not populate it
         codon = self.lookup_mcodon()
         for k1 in self.mnuc_aa_dict.keys():
             for e in self.mnuc_aa_dict.get(k1):
                 if e == codon:
                     return k1
-        # contingency in case of non-canonical bases
+        # Contingency in case of non-canonical bases
         return 'X'
 
     def update_gcodons(self):
         """updates DNA dict based on codon retrieved"""
-        # actually updates the dict
-        # if the codon is not recognized it will not be added
+        # Actually updates the dict
+        # If the codon is not recognized it will not be added
         gcodon = self.lookup_gcodon()
         for k1 in self.gnuc_aa_dict.keys():
             for k2 in self.gnuc_aa_dict[k1].keys():
@@ -168,7 +171,7 @@ class SeqPair(object):
 
     def update_mcodons(self):
         """updates mRNA dict based on codon retrieved"""
-        # same mechanic
+        # Same mechanic
         mcodon = self.lookup_mcodon()
         for k1 in self.mnuc_aa_dict.keys():
             for k2 in self.mnuc_aa_dict[k1].keys():
@@ -205,7 +208,7 @@ class SeqPair(object):
         elif gnuc == "C" and mnuc == "G":
             self.transition_dict['c_g'] += 1
         else:
-            # won't record information regarding
+            # Won't record information regarding
             # non-canonical/uncertain bases
             pass
 
@@ -219,10 +222,10 @@ class RefPair(object):
         self.name = name
         self.rseq = rseq
         self.gseq = gseq
-        # next two lines initialize counters
+        # Next two lines initialize counters
         self.rnuc_index = 0
         self.gnuc_index = 0
-        # next two lines initialize codon positions
+        # Next two lines initialize codon positions
         self.rcodon_pos = 1
         self.gcodon_pos = 1
 

@@ -31,7 +31,7 @@ class Blosum62(object):
             [ 0,-3,-3,-3,-1,-2,-2,-3,-3, 3, 1,-2, 1,-1,-2,-2, 0,-3,-1, 4, 0],
             [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
-    # we need to be able to determine which row and column correspond to each
+    # We need to be able to determine which row and column correspond to each
     # amino acid, the simplest way is to just index it
     aa_index = {'A':0, 'R':1, 'N':2, 'D':3, 'C':4, 'Q':5, 'E':6, 'G':7, 'H':8,
             'I':9, 'L':10, 'K':11, 'M':12, 'F':13, 'P':14, 'S':15, 'T':16, 'W':17,
@@ -40,7 +40,7 @@ class Blosum62(object):
     def __init__(self, aa1, aa2):
         self.aa1 = aa1
         self.aa2 = aa2
-        # initialized with the two amino acids to look up
+        # Initialized with the two amino acids to look up
         # in both cases, if we can't find the right amino acid
         # it is treated as a STOP codon
         try:
