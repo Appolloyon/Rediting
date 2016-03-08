@@ -144,6 +144,9 @@ for infile in args.infiles:
     # Finally, trim the sequences
     new_ref_seq = sequence.trim_sequence(ref_seq,indices)
     new_gen_seq = sequence.trim_sequence(gen_seq,indices)
+    # It is assumed that the rna sequence is similar to the genomic
+    # sequence, and is trimmed using the indices determined by the
+    # other two sequences
     new_rna_seq = sequence.trim_sequence(rna_seq,indices)
 
     # Write aligned sequences
