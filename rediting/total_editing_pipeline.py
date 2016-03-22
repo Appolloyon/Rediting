@@ -114,6 +114,10 @@ except(IndexError):
 # Once we know the start and end, simply chop off everything else
 new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
 new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
+# The aligned amino acid length is taken as the length of the conceptual
+# translation of the genomic sequence. Before it was just taken as this
+# length divided by 3, but this is more accurate
+aa_length = len(sequence.translate(new_gen_seq,seq_pair.index_position()))
 
 edit_list = []
 if args.edits:
@@ -293,14 +297,12 @@ gcb = sequence.calc_gc(new_gen_seq)
 gca = sequence.calc_gc(new_rna_seq)
 # This is technically the length of the aligned sequences
 seqlength = len(new_rna_seq)
-# The amino acid sequence length is currently implemented as a simple division
-# of the sequence length by three. Might change this for the final program, i.e.
-# by getting the length of the conceptual translation of the sequence instead
-aalength = seqlength/3
+# Amino acid length implementation changed, see line 120
+#aalength = seqlength/3
 numedits = float(len(edit_list))
 # Percent edits as compared to the aligned region
 seqedits = (numedits/seqlength) * 100
-aaedits = (float(num_aaedits)/aalength) * 100
+aaedits = (float(num_aaedits)/aa_length) * 100
 
 # If no residues are edited then this will throw an error
 try:
@@ -321,7 +323,7 @@ except(ZeroDivisionError):
     first_two_pos = 0
 
 m_o.write("%s,%.2f,%.2f,%s,%s,%s,%.2f,%s,%s,%s,%.2f,%.2f,%s,%.2f,%.2f" % (gene,\
-        gcb,gca,seqlength,aalength,numedits,seqedits,num_first_pos,num_second_pos,\
+        gcb,gca,seqlength,aa_length,numedits,seqedits,num_first_pos,num_second_pos,\
         num_third_pos,first_two_pos,non_syn,num_aaedits,aaedits,editscore))
 if args.polyt:
     m_o.write(",%.2f,%.2f,%.2f,%.2f" % (fraction_gen_polyt,fraction_rna_polyt,\
