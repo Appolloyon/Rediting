@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
+import re
 import argparse
 
-from util import files
+from util import files, sequence
 
 parser = argparse.ArgumentParser(
     description = """Generates random mutated versions of a genomic sequence,
@@ -13,44 +14,48 @@ parser = argparse.ArgumentParser(
     edits and any number of independent times. Output is provided as a series
     of files, each named according to a specified convention.""")
 parser.add_argument('-in', '--infile', help='file with starting sequence')
+parser.add_argument('-gen', '--genomic', help='unique string present in genomic sequence headers')
 parser.add_argument('-n', '--number', help='number of edits to simulate')
 parser.add_argument('-g', '--generations', help='number of simulations')
 parser.add_argument('-c', '--codon', help='file with codon bias information')
 parser.add_argument('-x', '--exchange', help='file with base convserion information')
 args = parser.parse_args()
 
+# Initialize important variables
 num_muts = int(args.number)
 num_gens = int(args.generations)
+gen_string = str(args.genomic)
 bases = 'AGTC'
 
+# Get the genomic sequence
+seqdict = {}
+files.build_seqdict(args.infile,seqdict)
+for k,v in seqdict.items():
+    if re.search(gen_string,k):
+        gen_seq = seqdict.get(k).upper()
+# Transform sequence into a list for future use - need mutable object
+gen_list = []
+for b in gen_seq:
+    gen_list.append(b)
+
+# Create indices for each codon position in sequence
+codon_positions = sequence.get_codon_position_indices(gen_seq)
+# Parse input files to gather frequency information
 codon_weights = []
 files.parse_codon_bias(args.codon,codon_weights)
 base_dict = {}
 base_weights = []
+# We need information on relative frequency of change for each base
+# and base-specific conversion rates
 files.parse_base_bias(args.exchange,base_dict,base_weights)
 
-print codon_weights
-print base_dict
-print base_weights
+# Mutate sequence and write to output files
+i = 0
+while i < num_gens:
+    out_name = "placeholder_" + str(i+1) + ".fa"
+    with open(out_name,'w') as o:
+        new_seq = sequence.weighted_mutation(gen_list,num_muts,
+            codon_positions,codon_weights,base_dict,base_weights)
+        o.write(">new_seq_" + str(i+1) + "\n" + "".join(new_seq) + "\n")
+    i += 1
 
-"""
-Pseudo-code for program execution
-
-Supply information for execution:
-    -sequence to use - this can simply be the string
-    -number of edits - this is just a value
-    -distribution of codon edits - should probably read it from a file
-    -distribution of base edits - should definitely read it from a file
-
-Partition the sequence into codon positions
-    -make three separate lists of positions, indexed by value
-
-Mutate the sequence, which means for each edit:
-    -choose whether it will be in the 1st, 2nd, or 3rd codon position
-        -use the weighted choice function
-    -get a random position from the corresponding list
-    -check what the nucleotide is at that position
-    -mutate it with a weighted choice
-
-Write the new sequence to an output file
-"""
