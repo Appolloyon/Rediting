@@ -285,23 +285,40 @@ def mutate_sequence(start_seq,num_muts,bases):
     end = (len(start_seq) - 1)
     new_seq = start_seq[:]
     i = 0
+    seen = set()
     while i < int(num_muts):
         position = random.randint(0,end)
-        new_base = change_base(start_seq[position],bases)
-        new_seq[position] = new_base
-        i += 1
+        if position not in seen:
+            new_base = change_base(start_seq[position],bases)
+            new_seq[position] = new_base
+            seen.add(position)
+            i += 1
     return new_seq
 
 
 def get_codon_position_indices(seq):
     """This function provides all relevant indices for each
     codon position in a sequence"""
-    pos_dict = {1:[],2:[],3:[]}
+    pos_dict = {1:[], 2:[], 3:[]}
+    pos_base_dict = {
+        1:[['A',0],['G',0],['T',0],['C',0]],
+        2:[['A',0],['G',0],['T',0],['C',0]],
+        3:[['A',0],['G',0],['T',0],['C',0]],
+        }
     codon_pos = 1
     for i,b in enumerate(seq):
         pos_dict[codon_pos].append(i)
+        n = 0
+        for item,x in pos_base_dict.get(codon_pos):
+            if item == b:
+                pos_base_dict[codon_pos][n][1] += 1
+            n += 1
         codon_pos = incr_codon_position(codon_pos)
-    return pos_dict
+    for codon_pos in pos_base_dict.keys():
+        for v,y in enumerate(pos_base_dict[codon_pos]):
+            pos_base_dict[codon_pos][v][1] =\
+                (pos_base_dict[codon_pos][v][1]/float(len(pos_dict[codon_pos])))
+    return (pos_dict,pos_base_dict)
 
 
 def check_weighted_base(base,base_weights):
@@ -316,27 +333,51 @@ def check_weighted_base(base,base_weights):
 
 
 def weighted_mutation(start_seq,num_muts,codon_positions,
-        codon_weights,base_dict,base_weights):
+        codon_weights,codon_bases,base_dict,base_weights,sim_obj):
     """Unlike the mutate_sequence function, this function applies
     mutations (edits) in a random fashion but also takes into
     account the relative 'weight' of each possible event, as seen
     in real sequence data"""
     new_seq = start_seq[:]
     i = 0
+    seen = set()
     while i < int(num_muts):
         # Get the codon position
         codon_pos = rmath.weighted_choice(codon_weights)
         # Choose a random index for chosen codon position
         pos = random.sample(codon_positions.get(codon_pos),1)
         # Check whether the base "can" be edited
-        if check_weighted_base(start_seq[pos[0]],base_weights):
-            # Weights for each possible conversion
-            weights = base_dict.get(start_seq[pos[0]])
-            new_base = rmath.weighted_choice(weights)
-            # New base gets positioned into new sequence
-            new_seq[pos[0]] = new_base[0]
-            i += 1
+        if pos[0] not in seen:
+            old_base = start_seq[pos[0]]
+            if check_weighted_base(old_base,base_weights):
+                if check_weighted_base(old_base,codon_bases[codon_pos]):
+                    # Weights for each possible conversion
+                    weights = base_dict.get(old_base)
+                    new_base = rmath.weighted_choice(weights)
+                    # New base gets positioned into new sequence
+                    new_seq[pos[0]] = new_base[0]
+                    sim_obj.update_transdict(old_base,new_base[0])
+                    sim_obj.update_codon_dict(codon_pos)
+                    seen.add(pos[0])
+                    i += 1
         # If we fail to get the chosen base, try again
         else:
             pass
     return new_seq
+
+def get_overall_weights(codon_weights,codon_bases,base_weights):
+    """Supplies a list of overall weights"""
+    weights = []
+    for codon_pos,codon_weight in codon_weights:
+        for codon_pos1 in codon_bases.keys():
+            if codon_pos == codon_pos1:
+                base_list = codon_bases[codon_pos]
+                for base,base_weight in base_list:
+                    for base1,base_weight1 in base_weights:
+                        if base == base1:
+                            overall_weight = codon_weight * base_weight * base_weight1
+                            weights.append(((codon_pos,base),overall_weight))
+    total = 0
+    for k,v in weights:
+        total += v
+
