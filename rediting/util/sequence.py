@@ -7,7 +7,8 @@ nucleotide sequences into their amino acid equivalents"""
 
 import random
 
-import strings
+import strings, rmath
+
 
 def compare_seqs(seq1, seq2, num_equal):
     """Compare substrings to determine start of alignment"""
@@ -195,6 +196,7 @@ def translate(nuc_seq,codon_pos):
         aa_seq += aa
     return aa_seq
 
+
 def check_indices(start,stop):
     """Returns True if indices are sensible and False if not"""
     # This shouldn't happen, but just in case
@@ -210,6 +212,7 @@ def check_indices(start,stop):
         # Otherwise the indices should be fine
         return True
 
+
 def expand_indices(start,stop,indices):
     """Returns a single list of index values
     for multiple start, stop pairs"""
@@ -220,6 +223,7 @@ def expand_indices(start,stop,indices):
         # start and stop values to a single list
         indices.append(start)
         start += 1
+
 
 def close_gap(i,codon_pos):
     """Returns an index for the end of a gap"""
@@ -233,6 +237,7 @@ def close_gap(i,codon_pos):
         end = i - 3
     return end
 
+
 def trim_sequence(seq,indices):
     """Returns a sequence lacking residues corresponding to indices"""
     new_seq = ''
@@ -245,6 +250,7 @@ def trim_sequence(seq,indices):
             new_seq += res
     return new_seq
 
+
 def check_gap_percent(aa_list):
     """Checks a position for less than 50% gaps"""
     num_gaps = 0
@@ -256,6 +262,7 @@ def check_gap_percent(aa_list):
     else:
         return False
 
+
 def generate_start_sequence(length,bases):
     """Generates a new starting sequence"""
     seq = []
@@ -263,12 +270,14 @@ def generate_start_sequence(length,bases):
         seq.append(random.choice(bases))
     return seq
 
+
 def change_base(old_base,bases):
     """Ensures that new base is different from old base"""
     new_base = old_base
     while not new_base != old_base:
         new_base = random.choice(bases)
     return new_base
+
 
 def mutate_sequence(start_seq,num_muts,bases):
     """This function takes a starting sequence and applies a number
@@ -283,3 +292,51 @@ def mutate_sequence(start_seq,num_muts,bases):
         i += 1
     return new_seq
 
+
+def get_codon_position_indices(seq):
+    """This function provides all relevant indices for each
+    codon position in a sequence"""
+    pos_dict = {1:[],2:[],3:[]}
+    codon_pos = 1
+    for i,b in enumerate(seq):
+        pos_dict[codon_pos].append(i)
+        codon_pos = incr_codon_position(codon_pos)
+    return pos_dict
+
+
+def check_weighted_base(base,base_weights):
+    """Checks the chosen base by weighted random choice
+    against a distribution. If 'base' is chosen returns,
+    TRUE, otherwise returns FALSE"""
+    base_choice = rmath.weighted_choice(base_weights)
+    if base_choice == base:
+        return True
+    else:
+        return False
+
+
+def weighted_mutation(start_seq,num_muts,codon_positions,
+        codon_weights,base_dict,base_weights):
+    """Unlike the mutate_sequence function, this function applies
+    mutations (edits) in a random fashion but also takes into
+    account the relative 'weight' of each possible event, as seen
+    in real sequence data"""
+    new_seq = start_seq[:]
+    i = 0
+    while i < int(num_muts):
+        # Get the codon position
+        codon_pos = rmath.weighted_choice(codon_weights)
+        # Choose a random index for chosen codon position
+        pos = random.sample(codon_positions.get(codon_pos),1)
+        # Check whether the base "can" be edited
+        if check_weighted_base(start_seq[pos[0]],base_weights):
+            # Weights for each possible conversion
+            weights = base_dict.get(start_seq[pos[0]])
+            new_base = rmath.weighted_choice(weights)
+            # New base gets positioned into new sequence
+            new_seq[pos[0]] = new_base[0]
+            i += 1
+        # If we fail to get the chosen base, try again
+        else:
+            pass
+    return new_seq
