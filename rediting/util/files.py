@@ -29,6 +29,7 @@ def build_seqdict(infile, seqdict):
     return seqdict
 
 
+# Potentially obsolete
 def parse_codon_bias(infile, codon_weights):
     """Builds a list of codon position bias weights"""
     with open(infile,'U') as f:
@@ -39,6 +40,7 @@ def parse_codon_bias(infile, codon_weights):
     return codon_weights
 
 
+# Potentially obsolete
 def parse_base_bias(infile, base_dict, base_weights):
     """Builds a dict of lists for base conversion, and also
     determines the relative frequency of each changing base"""
@@ -61,3 +63,15 @@ def parse_base_bias(infile, base_dict, base_weights):
         base_weights.append((k,v))
     return base_dict,base_weights
 
+
+def parse_codon_base_bias(infile,weights):
+    """Function definition to go here"""
+    with open(infile,'U') as f:
+        for line in nonblank_lines(f):
+            llist = line.strip('\n').split(',')
+            codon_pos = llist[0]
+            start_base = llist[1]
+            end_base = llist[2]
+            freq = int(llist[3])
+            weights.append(((codon_pos,start_base,end_base),freq))
+    return weights
