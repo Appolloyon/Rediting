@@ -10,7 +10,8 @@ import random
 from bisect import bisect
 
 from classes import matrices
-from sequence import polyTpercent
+#from sequence import polyTpercent
+import sequence
 
 def calc_mean(values):
     """Calculates the mean of a set of values"""
@@ -54,7 +55,7 @@ def ispolyTpercent(plist, percent):
     """check list elements for at least one polyT stretch"""
     # Go over each window in a list
     for e in plist:
-        if polyTpercent(e, percent):
+        if sequence.polyTpercent(e, percent):
             # If at least one window is True, than evaluates True
             return True
         else:
@@ -83,6 +84,7 @@ def calculate_entropy(aa_list):
     result = (1 - gap_proportion) * (1 - total_entropy)
     return result
 
+
 def calculate_average_score_diff(rg,rm,aa_list):
     """Calculates average edit score difference between
     genomic/transcript amino acid and reference sequences"""
@@ -92,6 +94,7 @@ def calculate_average_score_diff(rg,rm,aa_list):
         scr_after = matrices.Blosum62(rm,ref_aa).sub_score()
         total_score += (scr_after - scr_before)
     return (float(total_score)/len(aa_list))
+
 
 def weighted_choice(choices):
     """Allows random choices but with weighted values. Takes a list of
@@ -104,7 +107,7 @@ def weighted_choice(choices):
     cumulative_weight = []
     for w in weights:
         total += w
-        cumulative_weight.append(w)
+        cumulative_weight.append(total)
     rand_val = random.random() * total
     i = bisect(cumulative_weight, rand_val)
     return values[i]
