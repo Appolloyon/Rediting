@@ -5,6 +5,7 @@ includes code related to comparisons and calculations, but also several
 functions related to calculating indices and translating stand alone
 nucleotide sequences into their amino acid equivalents"""
 
+import random
 
 import strings
 
@@ -243,3 +244,42 @@ def trim_sequence(seq,indices):
         else:
             new_seq += res
     return new_seq
+
+def check_gap_percent(aa_list):
+    """Checks a position for less than 50% gaps"""
+    num_gaps = 0
+    for aa in aa_list:
+        if aa == '-':
+            num_gaps += 1
+    if float(num_gaps)/len(aa_list) <= 0.5:
+        return True
+    else:
+        return False
+
+def generate_start_sequence(length,bases):
+    """Generates a new starting sequence"""
+    seq = []
+    for i in range(length):
+        seq.append(random.choice(bases))
+    return seq
+
+def change_base(old_base,bases):
+    """Ensures that new base is different from old base"""
+    new_base = old_base
+    while not new_base != old_base:
+        new_base = random.choice(bases)
+    return new_base
+
+def mutate_sequence(start_seq,num_muts,bases):
+    """This function takes a starting sequence and applies a number
+    of mutations randomly along its length"""
+    end = (len(start_seq) - 1)
+    new_seq = start_seq[:]
+    i = 0
+    while i < int(num_muts):
+        position = random.randint(0,end)
+        new_base = change_base(start_seq[position],bases)
+        new_seq[position] = new_base
+        i += 1
+    return new_seq
+
