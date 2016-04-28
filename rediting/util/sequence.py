@@ -365,19 +365,32 @@ def weighted_mutation(start_seq,num_muts,codon_positions,
             pass
     return new_seq
 
-def get_overall_weights(codon_weights,codon_bases,base_weights):
+def weighted_mutation_new(start_seq,num_muts,codon_positions,
+        weights,sim_obj):
     """Supplies a list of overall weights"""
-    weights = []
-    for codon_pos,codon_weight in codon_weights:
-        for codon_pos1 in codon_bases.keys():
-            if codon_pos == codon_pos1:
-                base_list = codon_bases[codon_pos]
-                for base,base_weight in base_list:
-                    for base1,base_weight1 in base_weights:
-                        if base == base1:
-                            overall_weight = codon_weight * base_weight * base_weight1
-                            weights.append(((codon_pos,base),overall_weight))
-    total = 0
-    for k,v in weights:
-        total += v
+    new_seq = start_seq[:]
+    i = 0
+    seen = set()
+    while i < int(num_muts):
+        codon_pos,old_base,new_base = rmath.weighted_choice(weights)
+        codon_pos = int(codon_pos)
+        pos = choose_index(start_seq,old_base,codon_positions.get(codon_pos))
+        if pos not in seen:
+            new_seq[pos] = new_base
+            sim_obj.update_transdict(old_base,new_base)
+            sim_obj.update_codon_dict(codon_pos)
+            seen.add(pos)
+            i += 1
+        else:
+            pass
+    return new_seq
 
+
+def choose_index(seq,base,indices):
+    chosen = False
+    while chosen == False:
+        new_index = random.sample(indices,1)[0]
+        seq_base = seq[new_index]
+        if seq_base == base:
+            chosen = True
+    return new_index
