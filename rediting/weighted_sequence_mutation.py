@@ -2,9 +2,11 @@
 
 import argparse
 
+from util import files
+
 parser = argparse.ArgumentParser(
     description = """Generates random mutated versions of a genomic sequence,
-        based on known codon position and base conversion biases"""
+        based on known codon position and base conversion biases""",
     epilog = """This program takes a file with a single sequence and parameters
     describing the known biases in editing for the relevant organism and
     simulates the effect of editing on the sequence for a number of specified
@@ -17,8 +19,19 @@ parser.add_argument('-c', '--codon', help='file with codon bias information')
 parser.add_argument('-x', '--exchange', help='file with base convserion information')
 args = parser.parse_args()
 
+num_muts = int(args.number)
+num_gens = int(args.generations)
+bases = 'AGTC'
 
+codon_weights = []
+files.parse_codon_bias(args.codon,codon_weights)
+base_dict = {}
+base_weights = []
+files.parse_base_bias(args.exchange,base_dict,base_weights)
 
+print codon_weights
+print base_dict
+print base_weights
 
 """
 Pseudo-code for program execution
