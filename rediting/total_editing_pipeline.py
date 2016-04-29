@@ -44,6 +44,7 @@ gene = args.gene
 
 # Create a "master" outfile to collate data from multiple files
 m_out = args.outfile
+m_short = m_out.rsplit('.',1)[0] # Used for other 'master' files
 if os.path.isfile(m_out):
     # Appends if specified file already exists
     m_o = files.get_variable_file_handle(m_out,'a')
@@ -64,7 +65,7 @@ else:
 b_out = name + "_basic_editing.csv"
 
 # Create a GC outfile to collate codon-position-specific GC data from multiple files
-t_out = "Kv_GC_position.csv"
+t_out = m_short + "_GC_position.csv"
 if os.path.isfile(t_out):
     t_o = files.get_variable_file_handle(t_out,'a')
 else:
@@ -74,10 +75,10 @@ else:
 
 if args.edits:
     # Create files to collate positional edit data from multiple files
-    e_out = "Kv_editing_types.csv"
-    p1_out = "Kv_first_pos_conversions.csv"
-    p2_out = "Kv_second_pos_conversions.csv"
-    p3_out = "Kv_third_pos_conversions.csv"
+    e_out = m_short + "_editing_types.csv"
+    p1_out = m_short + "_first_pos_editing_types.csv"
+    p2_out = m_short + "_second_pos_editing_types.csv"
+    p3_out = m_short + "_third_pos_editing_types.csv"
     # Same headers for each file
     plist = ['gene','A to T','A to G','A to C','T to A','T to G','T to C',
         'G to A','G to T','G to C','C to A','C to T','C to G']
