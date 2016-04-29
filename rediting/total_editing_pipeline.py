@@ -60,6 +60,18 @@ else:
             + " percent polyT after")
     m_o.write("\n" * 2)
 
+# Create a test outfile to collate data from multiple files
+t_out = "Kv_GC_position.csv"
+# Appends if specified file already exists
+if os.path.isfile(t_out):
+    t_o = open(t_out,'a')
+else:
+    # The first time the file is opened, write header lines
+    t_o = open(t_out,'w')
+    t_o.write("gene,1st GC before,1st GC after,2nd GC before,2nd GC after,"
+        "3rd GC before,3rd GC after")
+    t_o.write("\n" * 2)
+
 # In addition to the master file, create separate outfile(s)
 # depending on which program conditions are specified
 b_out = name + "_basic_editing.csv"
@@ -123,8 +135,20 @@ edit_list = []
 if args.edits:
     num_edited_res = 0
 
+# Make sequences for each codon position
+codon_pos_seq_dict = {
+    'gen_first':'',
+    'gen_second':'',
+    'gen_third':'',
+    'rna_first':'',
+    'rna_second':'',
+    'rna_third':'',
+}
+
 # Compare matching regions and look for unequal residues (edits)
 for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
+    # Regardless, we need to update the sequences
+    sequence.update_pos_seq_dict(codon_pos_seq_dict,rg,rm,seq_pair.codon_pos)
     # There is an insertion in the RNA only
     if rg == '-' and rm != '-':
         seq_pair.incr_mrna()
@@ -330,6 +354,15 @@ if args.polyt:
         fraction_gen_percent_polyt,fraction_rna_percent_polyt))
 m_o.write("\n")
 
+t_o.write("%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f" % (gene,\
+        sequence.calc_gc(codon_pos_seq_dict.get('gen_first')),\
+        sequence.calc_gc(codon_pos_seq_dict.get('rna_first')),\
+        sequence.calc_gc(codon_pos_seq_dict.get('gen_second')),\
+        sequence.calc_gc(codon_pos_seq_dict.get('rna_second')),\
+        sequence.calc_gc(codon_pos_seq_dict.get('gen_third')),\
+        sequence.calc_gc(codon_pos_seq_dict.get('rna_third'))))
+t_o.write("\n")
+
 if args.codon:
     with open(c_out,'w') as c_o:
         c_o.write("amino acid,codon,genome usage,mRNA usage")
@@ -362,5 +395,7 @@ if args.edits:
         e_o.write("C to A: {}\n".format(seq_pair.transition_dict.get('c_a')))
         e_o.write("C to T: {}\n".format(seq_pair.transition_dict.get('c_t')))
         e_o.write("C to G: {}\n".format(seq_pair.transition_dict.get('c_g')))
+
+
 
 m_o.close()
