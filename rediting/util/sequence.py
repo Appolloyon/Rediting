@@ -5,6 +5,7 @@ includes code related to comparisons and calculations, but also several
 functions related to calculating indices and translating stand alone
 nucleotide sequences into their amino acid equivalents"""
 
+import re
 import random
 
 import strings, rmath
@@ -35,6 +36,23 @@ def compare_seqs(seq1, seq2, num_equal):
         return True
     else:
         return False
+
+
+def update_pos_seq_dict(seq_dict,gen,rna,codon_pos):
+    """Update a dictionary based on residues and codon position"""
+    if codon_pos == 1:
+        search_str = 'first'
+    elif codon_pos == 2:
+        search_str = 'second'
+    elif codon_pos == 3:
+        search_str = 'third'
+    for k in seq_dict.keys():
+        if re.search(search_str,k):
+            if re.search('gen',k):
+                seq_dict[k] += gen
+            else:
+                seq_dict[k] += rna
+    return seq_dict
 
 
 def calc_gc(string):
