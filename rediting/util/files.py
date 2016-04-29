@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-"""This module contains functions pertaining to dealing with reading from
-files and organizing the resulting data into data structures."""
+"""This module contains functions pertaining to dealing with reading from,
+and writing to, files as well as organizing the resulting data from read
+files into usable data structures."""
 
 
 def nonblank_lines(f):
@@ -27,6 +28,32 @@ def build_seqdict(infile, seqdict):
             else:
                 seqdict[ID] += line
     return seqdict
+
+
+def get_variable_file_handle(infile,mode,delimeter=None,write_list=None):
+    """Returns an open file object. If write_list is specified,
+    the individual elements of the list are written to the file
+    using delimeter as a separator"""
+    file_obj = open(infile,mode)
+    if write_list is not None and delimeter is None:
+        # If not specified, but needed, delimeter is a comma
+        delimeter = ','
+    if write_list is not None:
+        for elem in write_list:
+            file_obj.write(elem + delimeter)
+        file_obj.write("\n" * 2)
+    return file_obj
+
+
+def write_transition_dict(gene,tdict,file_obj):
+    """Takes a dictionary and file object and writes the
+    relevant information to the file"""
+    file_obj.write("%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d" % (gene,
+        tdict.get('a_t'),tdict.get('a_g'),tdict.get('a_c'),
+        tdict.get('t_a'),tdict.get('t_g'),tdict.get('t_c'),
+        tdict.get('g_a'),tdict.get('g_t'),tdict.get('g_c'),
+        tdict.get('c_a'),tdict.get('c_t'),tdict.get('c_g')))
+    file_obj.write("\n")
 
 
 # Potentially obsolete
