@@ -49,6 +49,9 @@ class SeqPair(object):
             'g_a':0, 'g_t':0, 'g_c':0,
             'c_a':0, 'c_t':0, 'c_g':0
             }
+        self.first_pos_transdict = copy.deepcopy(self.transition_dict)
+        self.second_pos_transdict = copy.deepcopy(self.transition_dict)
+        self.third_pos_transdict = copy.deepcopy(self.transition_dict)
 
 
     def index_nuc(self):
@@ -158,39 +161,55 @@ class SeqPair(object):
                 if k2 == mcodon:
                     self.mnuc_aa_dict[k1][k2] += 1
 
-    def update_transdict(self):
-        """updates transition_dict based on observed bases"""
+    def update_base_pref(self,tdict):
+        """general update function"""
         gnuc = self.lookup_gnuc()
         mnuc = self.lookup_mnuc()
 
         if gnuc == "A" and mnuc == "T":
-            self.transition_dict['a_t'] += 1
+            tdict['a_t'] += 1
         elif gnuc == "A" and mnuc == "G":
-            self.transition_dict['a_g'] += 1
+            tdict['a_g'] += 1
         elif gnuc == "A" and mnuc == "C":
-            self.transition_dict['a_c'] += 1
+            tdict['a_c'] += 1
         elif gnuc == "T" and mnuc == "A":
-            self.transition_dict['t_a'] += 1
+            tdict['t_a'] += 1
         elif gnuc == "T" and mnuc == "G":
-            self.transition_dict['t_g'] += 1
+            tdict['t_g'] += 1
         elif gnuc == "T" and mnuc == "C":
-            self.transition_dict['t_c'] += 1
+            tdict['t_c'] += 1
         elif gnuc == "G" and mnuc == "A":
-            self.transition_dict['g_a'] += 1
+            tdict['g_a'] += 1
         elif gnuc == "G" and mnuc == "T":
-            self.transition_dict['g_t'] += 1
+            tdict['g_t'] += 1
         elif gnuc == "G" and mnuc == "C":
-            self.transition_dict['g_c'] += 1
+            tdict['g_c'] += 1
         elif gnuc == "C" and mnuc == "A":
-            self.transition_dict['c_a'] += 1
+            tdict['c_a'] += 1
         elif gnuc == "C" and mnuc == "T":
-            self.transition_dict['c_t'] += 1
+            tdict['c_t'] += 1
         elif gnuc == "C" and mnuc == "G":
-            self.transition_dict['c_g'] += 1
+            tdict['c_g'] += 1
         else:
             # Won't record information regarding
             # non-canonical/uncertain bases
             pass
+
+    def update_transdict(self):
+        """updates transition_dict based on observed bases"""
+        self.update_base_pref(self.transition_dict)
+
+    def update_first_pos_transdict(self):
+        """updates dict only if first codon position"""
+        self.update_base_pref(self.first_pos_transdict)
+
+    def update_second_pos_transdict(self):
+        """updates dict only if second codon position"""
+        self.update_base_pref(self.second_pos_transdict)
+
+    def update_third_pos_transdict(self):
+        """updates dict only if third codon position"""
+        self.update_base_pref(self.third_pos_transdict)
 
 
 class RefPair(object):
@@ -259,7 +278,8 @@ class RefPair(object):
 
 
 class Simulation(object):
-    """Class to model DNA/mRNA sequence pairs"""
+    """Class to track cumulative information from multiple runs of the
+    weighted sequence mutation program DNA/mRNA sequence pairs"""
 
     def __init__(self):
         self.transition_dict = {
