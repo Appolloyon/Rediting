@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import copy
+
 class SeqPair(object):
     """Class to model DNA/mRNA sequence pairs"""
 
@@ -38,29 +40,7 @@ class SeqPair(object):
             'G':{'GGT':0,'GGC':0,'GGA':0,'GGG':0},
             'STOP':{'TAA':0,'TAG':0,'TGA':0}
             }
-        self.mnuc_aa_dict = {
-            'F':{'TTT':0,'TTC':0},
-            'L':{'TTA':0,'TTG':0,'CTT':0,'CTC':0,'CTA':0,'CTG':0},
-            'I':{'ATT':0,'ATC':0,'ATA':0},
-            'M':{'ATG':0},
-            'V':{'GTT':0,'GTC':0,'GTA':0,'GTG':0},
-            'S':{'TCT':0,'TCC':0,'TCA':0,'TCG':0,'AGT':0,'AGC':0},
-            'P':{'CCT':0,'CCC':0,'CCA':0,'CCG':0},
-            'T':{'ACT':0,'ACC':0,'ACA':0,'ACG':0},
-            'A':{'GCT':0,'GCC':0,'GCA':0,'GCG':0},
-            'Y':{'TAT':0,'TAC':0},
-            'H':{'CAT':0,'CAC':0},
-            'Q':{'CAA':0,'CAG':0},
-            'N':{'AAT':0,'AAC':0},
-            'K':{'AAA':0,'AAG':0},
-            'D':{'GAT':0,'GAC':0},
-            'E':{'GAA':0,'GAG':0},
-            'C':{'TGT':0,'TGC':0},
-            'W':{'TGG':0},
-            'R':{'CGT':0,'CGC':0,'CGA':0,'CGG':0,'AGA':0,'AGG':0},
-            'G':{'GGT':0,'GGC':0,'GGA':0,'GGG':0},
-            'STOP':{'TAA':0,'TAG':0,'TGA':0}
-            }
+        self.mnuc_aa_dict = copy.deepcopy(self.gnuc_aa_dict)
         # Unlike the last two dict which keep track of codons
         # This last dict is to track all possible base changes
         self.transition_dict = {
@@ -276,3 +256,71 @@ class RefPair(object):
         """advances counters through gen only"""
         self.incr_gpos()
         self.incr_gen()
+
+
+class Simulation(object):
+    """Class to model DNA/mRNA sequence pairs"""
+
+    def __init__(self):
+        self.transition_dict = {
+            'a_t':0, 'a_g':0, 'a_c':0,
+            't_a':0, 't_g':0, 't_c':0,
+            'g_a':0, 'g_t':0, 'g_c':0,
+            'c_a':0, 'c_t':0, 'c_g':0
+            }
+        self.codon_pos_dict = {
+                1:0, 2:0, 3:0
+            }
+
+    def update_transdict(self,start_base,end_base):
+        """updates transition_dict based on observed bases"""
+        if start_base == "A" and end_base == "T":
+            self.transition_dict['a_t'] += 1
+        elif start_base == "A" and end_base == "G":
+            self.transition_dict['a_g'] += 1
+        elif start_base == "A" and end_base == "C":
+            self.transition_dict['a_c'] += 1
+        elif start_base == "T" and end_base == "A":
+            self.transition_dict['t_a'] += 1
+        elif start_base == "T" and end_base == "G":
+            self.transition_dict['t_g'] += 1
+        elif start_base == "T" and end_base == "C":
+            self.transition_dict['t_c'] += 1
+        elif start_base == "G" and end_base == "A":
+            self.transition_dict['g_a'] += 1
+        elif start_base == "G" and end_base == "T":
+            self.transition_dict['g_t'] += 1
+        elif start_base == "G" and end_base == "C":
+            self.transition_dict['g_c'] += 1
+        elif start_base == "C" and end_base == "A":
+            self.transition_dict['c_a'] += 1
+        elif start_base == "C" and end_base == "T":
+            self.transition_dict['c_t'] += 1
+        elif start_base == "C" and end_base == "G":
+            self.transition_dict['c_g'] += 1
+        else:
+            # Won't record information regarding
+            # non-canonical/uncertain bases
+            pass
+
+    def update_codon_dict(self,codon_pos):
+        """Updates codon_pos_dict based on observed position"""
+        self.codon_pos_dict[codon_pos] += 1
+
+    def get_codon_percent(self):
+        """Prints information about editing codon positions"""
+        total = 0
+        for val in self.codon_pos_dict.values():
+            total += val
+        for k,v in self.codon_pos_dict.items():
+            print "%s pos %.2f" % (k,(100 * v/float(total)))
+
+    def get_base_conversion(self):
+        """Prints information about base conversions"""
+        total = 0
+        for val in self.transition_dict.values():
+            total += val
+        for k,v in self.transition_dict.items():
+            print "%s num %.2f" % (k,(100 * v/float(total)))
+
+
