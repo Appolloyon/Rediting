@@ -44,39 +44,64 @@ gene = args.gene
 
 # Create a "master" outfile to collate data from multiple files
 m_out = args.outfile
-# Appends if specified file already exists
 if os.path.isfile(m_out):
-    m_o = open(m_out,'a')
+    # Appends if specified file already exists
+    m_o = files.get_variable_file_handle(m_out,'a')
 else:
-    # The first time the file is opened, write header lines
-    m_o = open(m_out,'w')
-    m_o.write("gene,GC before,GC after,nucleotide length,amino acid length,"
-        "number edits,percent edits,first position edits,second position edits,"
-        "third position edits,percent edits in first two positions,percent non-synonymous edit,"
-        "number amino acid edits,percent amino acid edits,average edit score")
+    # First time file is opened, write header lines
+    mlist = ['gene','GC before','GC after','nucleotide length','amino acid length',
+        'number edits','percent edits','first position edits','second position edits',
+        'third position edits','percent edits in first two positions',
+        'percent non-synonymous edits','number amino acid edits','percent amino acid edits',
+        'average edit score']
     if args.polyt:
-        m_o.write(",fraction polyT before,fraction polyT after,fraction " +
-            str(percent) + " percent polyT before,fraction " + str(percent)
-            + " percent polyT after")
-    m_o.write("\n" * 2)
-
-# Create a test outfile to collate data from multiple files
-t_out = "Kv_GC_position.csv"
-# Appends if specified file already exists
-if os.path.isfile(t_out):
-    t_o = open(t_out,'a')
-else:
-    # The first time the file is opened, write header lines
-    t_o = open(t_out,'w')
-    t_o.write("gene,1st GC before,1st GC after,2nd GC before,2nd GC after,"
-        "3rd GC before,3rd GC after")
-    t_o.write("\n" * 2)
+        mlist.extend(['fraction polyT before','fraction polyT after',('fraction ' + str(percent) +
+            ' percent polyT before'),('fraction ' + str(percent) + ' percent polyT after')])
+    m_o = files.get_variable_file_handle(m_out,'w',',',mlist)
 
 # In addition to the master file, create separate outfile(s)
 # depending on which program conditions are specified
 b_out = name + "_basic_editing.csv"
+
+# Create a GC outfile to collate codon-position-specific GC data from multiple files
+t_out = "Kv_GC_position.csv"
+if os.path.isfile(t_out):
+    t_o = files.get_variable_file_handle(t_out,'a')
+else:
+    tlist = ['gene','1st GC before','1st GC after','2nd GC before',
+        '2nd GC after','3rd GC before','3rd GC after']
+    t_o = files.get_variable_file_handle(t_out,'w',',',tlist)
+
 if args.edits:
-    e_out = name + "_editing_types.txt"
+    # Create files to collate positional edit data from multiple files
+    e_out = "Kv_editing_types.csv"
+    p1_out = "Kv_first_pos_conversions.csv"
+    p2_out = "Kv_second_pos_conversions.csv"
+    p3_out = "Kv_third_pos_conversions.csv"
+    # Same headers for each file
+    plist = ['gene','A to T','A to G','A to C','T to A','T to G','T to C',
+        'G to A','G to T','G to C','C to A','C to T','C to G']
+    # Overall
+    if os.path.isfile(e_out):
+        e_o = files.get_variable_file_handle(e_out,'a')
+    else:
+        e_o = files.get_variable_file_handle(e_out,'w',',',plist)
+    # First codon position
+    if os.path.isfile(p1_out):
+        p1_o = files.get_variable_file_handle(p1_out,'a')
+    else:
+        p1_o = files.get_variable_file_handle(p1_out,'w',',',plist)
+    # Second codon position
+    if os.path.isfile(p2_out):
+        p2_o = files.get_variable_file_handle(p2_out,'a')
+    else:
+        p2_o = files.get_variable_file_handle(p2_out,'w',',',plist)
+    # Third codon position
+    if os.path.isfile(p3_out):
+        p3_o = files.get_variable_file_handle(p3_out,'a')
+    else:
+        p3_o = files.get_variable_file_handle(p3_out,'w',',',plist)
+
 if args.codon:
     c_out = name + "_codon_preference.csv"
 
@@ -230,6 +255,12 @@ for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
         # Only update transitions if we care about them
         if args.edits:
             seq_pair.update_transdict()
+            if seq_pair.codon_pos == 1:
+                seq_pair.update_first_pos_transdict()
+            elif seq_pair.codon_pos == 2:
+                seq_pair.update_second_pos_transdict()
+            elif seq_pair.codon_pos == 3:
+                seq_pair.update_third_pos_transdict()
             num_edited_res += 1
 
         seq_pair.incr_all()
@@ -380,22 +411,15 @@ if args.codon:
             c_o.write("\n")
 
 if args.edits:
-    with open(e_out,'w') as e_o:
-        e_o.write("Total number of unequal residues: {}\n".format(num_edited_res))
-        e_o.write("Number of transitions: \n")
-        e_o.write("A to T: {}\n".format(seq_pair.transition_dict.get('a_t')))
-        e_o.write("A to G: {}\n".format(seq_pair.transition_dict.get('a_g')))
-        e_o.write("A to C: {}\n".format(seq_pair.transition_dict.get('a_c')))
-        e_o.write("T to A: {}\n".format(seq_pair.transition_dict.get('t_a')))
-        e_o.write("T to G: {}\n".format(seq_pair.transition_dict.get('t_g')))
-        e_o.write("T to C: {}\n".format(seq_pair.transition_dict.get('t_c')))
-        e_o.write("G to A: {}\n".format(seq_pair.transition_dict.get('g_a')))
-        e_o.write("G to T: {}\n".format(seq_pair.transition_dict.get('g_t')))
-        e_o.write("G to C: {}\n".format(seq_pair.transition_dict.get('g_c')))
-        e_o.write("C to A: {}\n".format(seq_pair.transition_dict.get('c_a')))
-        e_o.write("C to T: {}\n".format(seq_pair.transition_dict.get('c_t')))
-        e_o.write("C to G: {}\n".format(seq_pair.transition_dict.get('c_g')))
-
-
+    files.write_transition_dict(gene,seq_pair.transition_dict,e_o)
+    files.write_transition_dict(gene,seq_pair.first_pos_transdict,p1_o)
+    files.write_transition_dict(gene,seq_pair.second_pos_transdict,p2_o)
+    files.write_transition_dict(gene,seq_pair.third_pos_transdict,p3_o)
 
 m_o.close()
+t_o.close()
+if args.edits:
+    e_o.close()
+    p1_o.close()
+    p2_o.close()
+    p3_o.close()
