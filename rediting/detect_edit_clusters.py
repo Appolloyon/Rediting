@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import argparse
+import numpy as np
 
 from util import files, sequence, strings, rmath
 
@@ -24,6 +25,7 @@ parser.add_argument('-neq', '--numequal', help='number of equal residues out of 
 parser.add_argument('-s', '--size', help='number of residues to compare to determine\
         start/end of an alignment', default=9)
 parser.add_argument('-w', '--window_size', help='size of sliding window', default=60)
+parser.add_argument('--simulation', action='store_true')
 args = parser.parse_args()
 
 window_size = float(args.window_size)
@@ -31,17 +33,18 @@ num_equal = int(args.numequal)
 size = int(args.size)
 name = args.name
 
-# Create a "master" outfile to collate data from multiple files
-m_out = args.outfile
-# Appends if specified file already exists
-if os.path.isfile(m_out):
-    m_o = open(m_out,'a')
-else:
-    # The first time the file is opened, write header lines
-    m_o = open(m_out,'w')
-    m_o.write("name,total edits,edits above average,edits at or below average,"
-        "percent above average edits")
-    m_o.write("\n" * 2)
+if not args.simulation:
+    # Create a "master" outfile to collate data from multiple files
+    m_out = args.outfile
+    # Appends if specified file already exists
+    if os.path.isfile(m_out):
+        m_o = open(m_out,'a')
+    else:
+        # The first time the file is opened, write header lines
+        m_o = open(m_out,'w')
+        m_o.write("name,total edits,edits above average,edits at or below average,"
+            "percent above average edits,cluster score")
+        m_o.write("\n" * 2)
 
 # Load sequence data into a data structure for internal use
 seqdict = {}
@@ -125,15 +128,18 @@ for start,end in sequence.get_indices(compstr1, window_size):
 # a global calculation, i.e. value/len*100
 try:
     edit_mean = rmath.calc_mean(edit_list)
+    edit_std_dev = np.std(edit_list)
 # If no edits occurred, then edit_list is empty
 # and calc_mean will throw a ZeroDivError
 except(ZeroDivisionError):
     print "Zero Div Error calculating edit_mean"
     edit_mean = 0.0
+    edit_std_dev = 0.0
 
 # Determine how many edits are above the average
 edits_above_average = 0.0
 total_edits = 0.0
+cluster_score = 0.0
 # Here we calculate edits based on the actual percent in each window
 for edit in edit_list:
     if edit > edit_mean:
@@ -141,6 +147,13 @@ for edit in edit_list:
         edits_above_average += edit
     else:
         total_edits += edit
+    try:
+        #cluster_score += (edit * (abs(edit - edit_mean)/edit_std_dev))
+        cluster_score += (edit * (abs(edit - edit_mean)**2))
+    except(ZeroDivisionError):
+        cluster_score += 0.0
+
+
 # Whatever is left becomes "other"
 other_edits = total_edits - edits_above_average
 
@@ -163,9 +176,19 @@ try:
 except(ZeroDivisionError):
     percent_diff = 0.0
 
-m_o.write("%s,%s,%s,%s,%.2f" % (name,num_total_edits,num_above_average,\
-        num_other,percent_diff))
-m_o.write("\n")
+if not args.simulation:
+    m_o.write("%s,%s,%s,%s,%.2f,%.2f" % (name,num_total_edits,num_above_average,\
+        num_other,percent_diff,cluster_score))
+    m_o.write("\n")
 
-# Finally close the output file again
-m_o.close()
+if not args.simulation:
+    # Finally close the output file again
+    m_o.close()
+
+if args.simulation:
+    tmpfile = 'tempfile.csv'
+    with open(tmpfile,'w') as o:
+        o.write("%s,%s,%s,%f" % (name,len(new_rna_seq),num_total_edits,cluster_score))
+        for edit in edit_list:
+            o.write(",%f" % (edit))
+        o.write("\n")
