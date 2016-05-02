@@ -8,9 +8,9 @@ import math
 import collections
 import random
 from bisect import bisect
+import numpy as np
 
 from classes import matrices
-#from sequence import polyTpercent
 import sequence
 
 def calc_mean(values):
@@ -111,3 +111,11 @@ def weighted_choice(choices):
     rand_val = random.random() * total
     i = bisect(cumulative_weight, rand_val)
     return values[i]
+
+
+def equal_vars(array1,array2):
+    """Checks whether the variance is equal"""
+    if np.var(array1) == np.var(array2):
+        return True
+    else:
+        return False

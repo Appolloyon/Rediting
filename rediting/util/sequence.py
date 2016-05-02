@@ -412,3 +412,56 @@ def choose_index(seq,base,indices):
         if seq_base == base:
             chosen = True
     return new_index
+
+
+def calc_cluster_score(seq1,seq2,window_size=60):
+    """Short-hand version of full edit cluster program to use
+    in simulation analyses"""
+    compstr1 = ''
+    for i, (s1, s2) in enumerate(zip(seq1, seq2)):
+        # Insertion in either
+        if s1 == '-' and s2 != '-':
+            compstr1 += str(0)
+        elif s2 == '-' and s1 != '-':
+            compstr1 += str(0)
+        # No edits
+        elif s1 == s2:
+            compstr1 += str(0)
+        # Edit
+        elif s1 != s2:
+            compstr1 += str(1)
+        else:
+            pass
+    edit_list = []
+    # Gets all full-length windows possible for length of aligned sequences
+    for start,end in get_indices(compstr1, window_size):
+        try:
+            edit_list.append(calc_percent(compstr1, start, end, window_size))
+        # This error should not get thrown, but just in case
+        except(ValueError,IndexError):
+            print "Error detected while adding to edit_list"
+            pass
+    # Get the average of all edits over windows
+    # Note that this will likely differ slightly from
+    # a global calculation, i.e. value/len*100
+    #try:
+        #edit_mean = rmath.calc_mean(edit_list)
+        #edit_std_dev = np.std(edit_list)
+    # If no edits occurred, then edit_list is empty
+    # and calc_mean will throw a ZeroDivError
+    #except(ZeroDivisionError):
+        #print "Zero Div Error calculating edit_mean"
+        #edit_mean = 0.0
+        #edit_std_dev = 0.0
+    # Determine how many edits are above the average
+    #cluster_score = 0.0
+    # Here we calculate edits based on the actual percent in each window
+    #for edit in edit_list:
+        #try:
+            #cluster_score += (edit * (abs(edit - edit_mean)**2))
+        #except(ZeroDivisionError):
+            #cluster_score += 0.0
+
+    return edit_list
+
+
