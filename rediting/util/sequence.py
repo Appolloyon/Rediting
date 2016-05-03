@@ -441,27 +441,5 @@ def calc_cluster_score(seq1,seq2,window_size=60):
         except(ValueError,IndexError):
             print "Error detected while adding to edit_list"
             pass
-    # Get the average of all edits over windows
-    # Note that this will likely differ slightly from
-    # a global calculation, i.e. value/len*100
-    #try:
-        #edit_mean = rmath.calc_mean(edit_list)
-        #edit_std_dev = np.std(edit_list)
-    # If no edits occurred, then edit_list is empty
-    # and calc_mean will throw a ZeroDivError
-    #except(ZeroDivisionError):
-        #print "Zero Div Error calculating edit_mean"
-        #edit_mean = 0.0
-        #edit_std_dev = 0.0
-    # Determine how many edits are above the average
-    #cluster_score = 0.0
-    # Here we calculate edits based on the actual percent in each window
-    #for edit in edit_list:
-        #try:
-            #cluster_score += (edit * (abs(edit - edit_mean)**2))
-        #except(ZeroDivisionError):
-            #cluster_score += 0.0
-
     return edit_list
-
 
