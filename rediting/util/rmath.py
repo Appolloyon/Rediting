@@ -85,6 +85,21 @@ def calculate_entropy(aa_list):
     return result
 
 
+# Might not need this after all
+def calculate_score_diff(aa_edit_list):
+    """calculates the average score difference based on
+    a provided list of aa editing characteristics"""
+    num_edits = float(len(aa_edit_list))
+    diff_score = 0
+    for P,RA,GA,MA,IB,IA,SB,SA,D in aa_edit_list:
+        diff_score += int(D)
+    try:
+        avg_diff = diff_score/num_edits
+    except(ZeroDivisionError):
+        avg_diff = 0
+    return avg_diff
+
+
 def calculate_average_score_diff(rg,rm,aa_list):
     """Calculates average edit score difference between
     genomic/transcript amino acid and reference sequences"""
@@ -119,3 +134,12 @@ def equal_vars(array1,array2):
         return True
     else:
         return False
+
+def sig_pvalue_frequency(p_values,threshold=0.05):
+    """Calculates the proportion of p_values in a list
+    that are below a given significance threshold"""
+    sig_pvals = 0
+    for p_val in p_values:
+        if p_val < threshold:
+            sig_pvals += 1
+    return (float(sig_pvals)/len(p_values))

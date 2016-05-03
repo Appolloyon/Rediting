@@ -8,6 +8,7 @@ nucleotide sequences into their amino acid equivalents"""
 import re
 import random
 
+from classes import matrices
 import strings, rmath
 
 
@@ -421,4 +422,53 @@ def calc_cluster_score(seq1,seq2,window_size=60):
             print "Error detected while adding to edit_list"
             pass
     return edit_list
+
+
+def compare_aa_seqs(gen_index,gen_seq,rna_seq,ref_seq,edit_list):
+    """Compares amino acids and determines whether changes result
+    in increased or decreased similarity to a reference"""
+    for i, (rg,rm) in enumerate(zip(gen_seq, rna_seq)):
+        ident_before = 'N'
+        ident_after = 'N'
+        sim_before = 'N'
+        sim_after = 'N'
+        # Insert in mrna sequence
+        if rg == '-' and rm != '-':
+            pass
+        # Insert in genomic sequence
+        elif rg != '-' and rm == '-':
+            # Don't do anything, but move the index along
+            gen_index += 1
+        # Gaps in both sequences, no edits possible
+        elif rg == '-' and rm == '-':
+            pass
+        # No edits, but move the index along
+        elif rg == rm:
+            gen_index += 1
+        # Edit detected
+        elif rg != rm:
+            ref_aa = ref_seq[i]
+            # We only care about edits we can actually compare
+            if ref_aa != '-':
+                # Check for identity
+                if rg == ref_aa:
+                    ident_before = 'Y'
+                if rm == ref_aa:
+                    ident_after = 'Y'
+                # Get the relevant score from Blosum62
+                # Similar amino acids have positive scores
+                scr_before = matrices.Blosum62(rg,ref_aa).sub_score()
+                scr_after = matrices.Blosum62(rm,ref_aa).sub_score()
+                # Check for similarity
+                # Note that while both cannot be identical, they can
+                # both be similar
+                if scr_before > 0:
+                    sim_before = 'Y'
+                if scr_after > 0:
+                    sim_after = 'Y'
+                scr_diff = (scr_after - scr_before)
+
+                edit_list.append([(gen_index+1),ref_aa,rg,rm,ident_before,
+                    ident_after,sim_before,sim_after,scr_diff])
+            gen_index += 1
 
