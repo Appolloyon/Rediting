@@ -154,10 +154,11 @@ for i in range(num_gens):
     for P,RA,GA,MA,IB,IA,SB,SA,D in sim_edit_list:
         sim_scr_diffs.append(int(D))
 
-    if rmath.equal_vars(scr_diffs,sim_scr_diffs):
-        p_val = st.ttest_ind(scr_diffs,sim_scr_diffs)
-    else:
-        p_val = st.ttest_ind(scr_diffs,sim_scr_diffs,equal_var=False)
+    p_val = st.ranksums(scr_diffs,sim_scr_diffs)
+    #if rmath.equal_vars(scr_diffs,sim_scr_diffs):
+        #p_val = st.ttest_ind(scr_diffs,sim_scr_diffs)
+    #else:
+        #p_val = st.ttest_ind(scr_diffs,sim_scr_diffs,equal_var=False)
     p_values.append(p_val[1])
 
 avg_sim_score = (float(total_sim_score)/num_gens)
