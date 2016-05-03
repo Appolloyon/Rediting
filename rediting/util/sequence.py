@@ -314,31 +314,42 @@ def mutate_sequence(start_seq,num_muts,bases):
     return new_seq
 
 
-def get_codon_position_indices(seq):
+def get_positional_information(seq1,seq2,codon_pos):
     """This function provides all relevant indices for each
     codon position in a sequence"""
+    num_edits = 0
     pos_dict = {1:[], 2:[], 3:[]}
     pos_base_dict = {
-        1:[['A',0],['G',0],['T',0],['C',0]],
-        2:[['A',0],['G',0],['T',0],['C',0]],
-        3:[['A',0],['G',0],['T',0],['C',0]],
+        1:[['A','G',0],['A','T',0],['A','C',0],
+        ['G','A',0],['G','T',0],['G','C',0],
+        ['T','A',0],['T','G',0],['T','C',0],
+        ['C','A',0],['C','G',0],['C','T',0]],
+        2:[['A','G',0],['A','T',0],['A','C',0],
+        ['G','A',0],['G','T',0],['G','C',0],
+        ['T','A',0],['T','G',0],['T','C',0],
+        ['C','A',0],['C','G',0],['C','T',0]],
+        3:[['A','G',0],['A','T',0],['A','C',0],
+        ['G','A',0],['G','T',0],['G','C',0],
+        ['T','A',0],['T','G',0],['T','C',0],
+        ['C','A',0],['C','G',0],['C','T',0]]
         }
-    codon_pos = 1
-    for i,b in enumerate(seq):
+    for i,(r1,r2) in enumerate(zip(seq1,seq2)):
         pos_dict[codon_pos].append(i)
         n = 0
-        for item,x in pos_base_dict.get(codon_pos):
-            if item == b:
-                pos_base_dict[codon_pos][n][1] += 1
+        for b1,b2,x in pos_base_dict.get(codon_pos):
+            if b1 == r1 and b2 == r2:
+                num_edits += 1
+                pos_base_dict[codon_pos][n][2] += 1
             n += 1
         codon_pos = incr_codon_position(codon_pos)
+    cumul_weights = []
     for codon_pos in pos_base_dict.keys():
-        for v,y in enumerate(pos_base_dict[codon_pos]):
-            pos_base_dict[codon_pos][v][1] =\
-                (pos_base_dict[codon_pos][v][1]/float(len(pos_dict[codon_pos])))
-    return (pos_dict,pos_base_dict)
+        for sb,eb,w in pos_base_dict.get(codon_pos):
+            cumul_weights.append(((codon_pos,sb,eb),w))
+    return (num_edits,pos_dict,cumul_weights)
 
 
+# Potentially obsolete
 def check_weighted_base(base,base_weights):
     """Checks the chosen base by weighted random choice
     against a distribution. If 'base' is chosen returns,
@@ -349,39 +360,6 @@ def check_weighted_base(base,base_weights):
     else:
         return False
 
-
-def weighted_mutation(start_seq,num_muts,codon_positions,
-        codon_weights,codon_bases,base_dict,base_weights,sim_obj):
-    """Unlike the mutate_sequence function, this function applies
-    mutations (edits) in a random fashion but also takes into
-    account the relative 'weight' of each possible event, as seen
-    in real sequence data"""
-    new_seq = start_seq[:]
-    i = 0
-    seen = set()
-    while i < int(num_muts):
-        # Get the codon position
-        codon_pos = rmath.weighted_choice(codon_weights)
-        # Choose a random index for chosen codon position
-        pos = random.sample(codon_positions.get(codon_pos),1)
-        # Check whether the base "can" be edited
-        if pos[0] not in seen:
-            old_base = start_seq[pos[0]]
-            if check_weighted_base(old_base,base_weights):
-                if check_weighted_base(old_base,codon_bases[codon_pos]):
-                    # Weights for each possible conversion
-                    weights = base_dict.get(old_base)
-                    new_base = rmath.weighted_choice(weights)
-                    # New base gets positioned into new sequence
-                    new_seq[pos[0]] = new_base[0]
-                    sim_obj.update_transdict(old_base,new_base[0])
-                    sim_obj.update_codon_dict(codon_pos)
-                    seen.add(pos[0])
-                    i += 1
-        # If we fail to get the chosen base, try again
-        else:
-            pass
-    return new_seq
 
 def weighted_mutation_new(start_seq,num_muts,codon_positions,
         weights,sim_obj):
@@ -432,6 +410,7 @@ def calc_cluster_score(seq1,seq2,window_size=60):
             compstr1 += str(1)
         else:
             pass
+    #print str(sum([int(val) for val in compstr1]))
     edit_list = []
     # Gets all full-length windows possible for length of aligned sequences
     for start,end in get_indices(compstr1, window_size):
