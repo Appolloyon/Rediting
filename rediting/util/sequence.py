@@ -102,6 +102,8 @@ def get_indices(string, window_size):
 
 def get_non_overlapping_indices(string, start, size, indices):
     """Returns non-overlapping start and end coordinates"""
+    import sys
+    sys.setrecursionlimit(1000) # Can handle up to 3000 bases
     size = int(size)
     end = start + size
     if end > len(string):
