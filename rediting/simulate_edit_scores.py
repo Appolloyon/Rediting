@@ -34,16 +34,16 @@ num_gens = int(args.simulations)
 size = int(args.size)
 name = args.name
 
-# Create a "master" outfile to collate data from multiple files
+# Create a "master" outfile to collate data from multiple runs
 m_out = args.outfile
-# Appends if specified file already exists
 if os.path.isfile(m_out):
-    m_o = open(m_out,'a')
+    # Appends if specified file already exists
+    m_o = files.get_variable_file_handle(m_out,'a')
 else:
     # The first time the file is opened, write header lines
-    m_o = open(m_out,'w')
-    m_o.write("name,num edits,num AA edits,average edit score,average sim score,frequency of significant edits")
-    m_o.write("\n" * 2)
+    mlist = ['gene','number nucleotide edits','number AA edits','average number sim AA edits',
+            'average edit score','average sim edit score','frequency of significant editing']
+    m_o = files.get_variable_file_handle(m_out,'w',',',mlist)
 
 # Load sequence data into a data structure for internal use
 seqdict = {}
@@ -60,9 +60,10 @@ for k in seqdict.keys():
     else:
         ref_seq = seqdict.get(k).upper()
 
+# We directly compare aligned sequences, but class implementation uses
+# unaligned sequences (i.e. no gap characters '-')
 san_rna_seq = strings.sanitize(rna_seq)
 san_gen_seq = strings.sanitize(gen_seq)
-san_ref_seq = strings.sanitize(ref_seq)
 seq_pair = classes.SeqPair(san_rna_seq,san_gen_seq,name)
 
 # Find the beginning and end of aligned region
@@ -89,19 +90,18 @@ except(IndexError):
 
 # Once we know the start and end, simply chop off everything else
 new_rna_seq = rna_seq[i:(len(rna_seq)-j)]
+# Save the first and last parts of the RNA sequence to glue back on
+# later once the sequence has been "edited"
 rna_start = rna_seq[:i]
 rna_end = rna_seq[(len(rna_seq)-j):]
 new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
 
-#print len(new_rna_seq)
-#print new_gen_seq
-#print new_rna_seq
+# In order to "edit" the sequence accurately, need to know the distribution
+# of edits among codon positions and base conversions
 num_edits,codon_positions,cumul_weights = sequence.get_positional_information(
         new_gen_seq,new_rna_seq,seq_pair.index_position())
-#print num_edits
-#print codon_positions
-#print cumul_weights
 
+# In order for MUSCLE to align, write sequences to a temporary file
 # We don't need to use sanitized sequences, because the translate function
 # removes gap characters prior to translation anyway
 with open("tempfile.fa",'w') as o1:
@@ -109,30 +109,20 @@ with open("tempfile.fa",'w') as o1:
     o1.write(">mrna_seq" + "\n" + sequence.translate(rna_seq,1) + "\n")
     o1.write(">ref_seq" + "\n" + sequence.translate(ref_seq,1) + "\n")
 
-#print "aligning starting sequences"
+# External call to align the file with MUSCLE
 subprocess.call(["muscle3.8.31_i86darwin64", "-in", "tempfile.fa",
     "-out", "tempfile.afa", "-quiet"])
 
+# Now these sequences are amino acid translations
 aa_seqdict = {}
 files.build_seqdict("tempfile.afa",aa_seqdict)
 for k in aa_seqdict.keys():
     if re.search(rna_string,k):
-        #print "found a rna sequence"
         aa_rna_seq = aa_seqdict.get(k).upper()
     elif re.search(gen_string,k):
-        #print "found a gen sequence"
         aa_gen_seq = aa_seqdict.get(k).upper()
     else:
-        #print "found a ref sequence"
         aa_ref_seq = aa_seqdict.get(k).upper()
-
-#print rna_seq
-#print
-#print aa_rna_seq
-#print
-#print gen_seq
-#print
-#print aa_gen_seq
 
 # Find the beginning and end of aligned region
 i = 0
@@ -158,6 +148,7 @@ except(IndexError):
 
 
 edit_list = []
+# Determine the consequence of editing at the amino acid level
 sequence.compare_aa_seqs(0,aa_gen_seq[i:(len(aa_gen_seq)-j)],
     aa_rna_seq[i:(len(aa_rna_seq)-j)],
     aa_ref_seq[i:(len(aa_ref_seq)-j)],edit_list)
@@ -170,30 +161,31 @@ if len(scr_diffs) == 0:
     # Exit cleanly
     sys.exit(0)
 
+# Initialize important variables for the simulation
 p_values = []
 simulation = classes.Simulation()
 total_sim_score = 0
-#gen_list = [b for b in new_gen_seq]
+total_sim_aa_edits = 0
 gen_list = []
+# In order to change bases in place, need to convert the sequence to a list
+# This used to be a simple list comp expression but frameshifts necessitate
+# comparing both genomic and rna sequences
 for rg,rm in zip(new_gen_seq,new_rna_seq):
     # Added a case to deal with frameshifts
     if rg != '-' and rm == '-':
         gen_list.append('-')
+    # Otherwise, just append
     else:
         gen_list.append(rg)
-#print gen_list
-#print len(gen_list)
-#print "starting simulations"
 x = 0
 while x < num_gens:
+    # "Edit" the genomic sequence over the aligned region by applying edits to
+    # it as per the patterns observed for the real sequences
     new_seq = "".join(sequence.weighted_mutation(gen_list,num_edits,
         codon_positions,cumul_weights,simulation))
-    #print new_seq
-    #print len(new_seq)
     edited_rna_seq = rna_start + new_seq + rna_end
-    #print len(rna_seq)
-    #print len(edited_rna_seq)
 
+    # Same as above, need to align the sequences so we write to a file
     with open("sim_tempfile.fa",'w') as o2:
         o2.write(">gen_seq" + "\n" + sequence.translate(gen_seq,1) + "\n")
         o2.write(">mrna_seq" + "\n" + sequence.translate(edited_rna_seq,1) + "\n")
@@ -237,17 +229,16 @@ while x < num_gens:
             sim_aa_rna_seq[i:(len(sim_aa_rna_seq)-j)],
             sim_aa_ref_seq[i:(len(sim_aa_ref_seq)-j)],sim_edit_list)
     total_sim_score += rmath.calculate_score_diff(sim_edit_list)
+    total_sim_aa_edits += len(sim_edit_list)
     sim_scr_diffs = []
     for P,RA,GA,MA,IB,IA,SB,SA,D in sim_edit_list:
         sim_scr_diffs.append(int(D))
+    # If there are no edits then we need to try again
     if len(sim_scr_diffs) != 0:
-        #print "calculating stats"
-        #print name
-        #print len(scr_diffs)
-        #print len(sim_scr_diffs)
-        #print
         p_val = st.ranksums(scr_diffs,sim_scr_diffs)
         p_values.append(p_val[1])
+        # By incrementing the counter we are saying that we
+        # obtained edits for comparison
         x += 1
     else:
         #print "skipping"
@@ -255,12 +246,15 @@ while x < num_gens:
 
 num_exp_edits = len(scr_diffs)
 avg_sim_score = (float(total_sim_score)/num_gens)
+avg_sim_aa_edits = (float(total_sim_aa_edits)/num_gens)
 sig_pvals = rmath.sig_pvalue_frequency(p_values)
-m_o.write("%s,%s,%s,%.2f,%.2f,%.2f" % (name,num_edits,num_exp_edits,avg_score,avg_sim_score,sig_pvals))
+m_o.write("%s,%s,%s,%.2f,%.2f,%.2f,%.2f" % (name,num_edits,num_exp_edits,
+    avg_sim_aa_edits,avg_score,avg_sim_score,sig_pvals))
 m_o.write("\n")
 #simulation.get_codon_percent()
 #simulation.get_base_conversion()
 
+# Remove the temporary files when no longer needed
 os.remove("tempfile.fa")
 os.remove("tempfile.afa")
 os.remove("sim_tempfile.fa")
