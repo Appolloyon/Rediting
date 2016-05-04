@@ -327,20 +327,29 @@ class Simulation(object):
         """Updates codon_pos_dict based on observed position"""
         self.codon_pos_dict[codon_pos] += 1
 
+    def get_value(self,tdict):
+        """Finds the total for all values in a dictionary"""
+        total = 0
+        for val in tdict.values():
+            total += val
+        return total
+
     def get_codon_percent(self):
         """Prints information about editing codon positions"""
-        total = 0
-        for val in self.codon_pos_dict.values():
-            total += val
+        total = self.get_value(self.codon_pos_dict)
         for k,v in self.codon_pos_dict.items():
             print "%s pos %.2f" % (k,(100 * v/float(total)))
 
     def get_base_conversion(self):
         """Prints information about base conversions"""
-        total = 0
-        for val in self.transition_dict.values():
-            total += val
+        total = self.get_value(self.transition_dict)
         for k,v in self.transition_dict.items():
             print "%s num %.2f" % (k,(100 * v/float(total)))
+
+    #def write_sim_information(self,file_obj):
+        #"""Writes information to a file"""
+        #file_obj.write("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,
+            #%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f" % (
+
 
 
