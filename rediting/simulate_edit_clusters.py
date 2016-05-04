@@ -128,7 +128,8 @@ for start,end in sequence.get_indices(compstr1, window_size):
 length = len(new_rna_seq)
 num_edits = num_total_edits
 p_values = []
-for i in range(num_gens):
+x = 0
+while x < num_gens:
     seq1 = sequence.generate_start_sequence(length,bases)
     # Add mutations to simulate edits
     seq2 = sequence.mutate_sequence(seq1,num_edits,bases)
@@ -136,6 +137,8 @@ for i in range(num_gens):
     # Check for appropriate t test
     p_val = st.levene(edit_list,sim_dist)
     p_values.append(p_val[1])
+
+    x += 1
 
 sig_pvals = 0
 for p_val in p_values:
