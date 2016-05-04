@@ -142,4 +142,7 @@ def sig_pvalue_frequency(p_values,threshold=0.05):
     for p_val in p_values:
         if p_val < threshold:
             sig_pvals += 1
-    return (float(sig_pvals)/len(p_values))
+    try:
+        return (float(sig_pvals)/len(p_values))
+    except(ZeroDivisionError):
+        return 0.0

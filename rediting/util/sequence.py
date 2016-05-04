@@ -317,9 +317,10 @@ def mutate_sequence(start_seq,num_muts,bases):
     return new_seq
 
 
-def get_positional_information(seq1,seq2,codon_pos):
+def get_positional_information(gen_seq,rna_seq,codon_pos):
     """This function provides all relevant indices for each
     codon position in a sequence"""
+    #print codon_pos
     num_edits = 0
     pos_dict = {1:[], 2:[], 3:[]}
     pos_base_dict = {
@@ -336,15 +337,18 @@ def get_positional_information(seq1,seq2,codon_pos):
         ['T','A',0],['T','G',0],['T','C',0],
         ['C','A',0],['C','G',0],['C','T',0]]
         }
-    for i,(r1,r2) in enumerate(zip(seq1,seq2)):
-        pos_dict[codon_pos].append(i)
-        n = 0
-        for b1,b2,x in pos_base_dict.get(codon_pos):
-            if b1 == r1 and b2 == r2:
-                num_edits += 1
-                pos_base_dict[codon_pos][n][2] += 1
-            n += 1
-        codon_pos = incr_codon_position(codon_pos)
+    for i,(rg,rm) in enumerate(zip(gen_seq,rna_seq)):
+        if rg == '-':
+            pass
+        else:
+            pos_dict[codon_pos].append(i)
+            n = 0
+            for b1,b2,x in pos_base_dict.get(codon_pos):
+                if b1 == rg and b2 == rm:
+                    num_edits += 1
+                    pos_base_dict[codon_pos][n][2] += 1
+                n += 1
+            codon_pos = incr_codon_position(codon_pos)
     cumul_weights = []
     for codon_pos in pos_base_dict.keys():
         for sb,eb,w in pos_base_dict.get(codon_pos):
@@ -364,7 +368,7 @@ def check_weighted_base(base,base_weights):
         return False
 
 
-def weighted_mutation_new(start_seq,num_muts,codon_positions,
+def weighted_mutation(start_seq,num_muts,codon_positions,
         weights,sim_obj):
     """Supplies a list of overall weights"""
     new_seq = start_seq[:]
