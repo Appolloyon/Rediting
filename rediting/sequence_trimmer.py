@@ -55,7 +55,7 @@ for infile in args.infiles:
 
     san_gen_seq = strings.sanitize(gen_seq)
     san_ref_seq = strings.sanitize(ref_seq)
-    # We steal the RefPair class, but we do not care about the name for
+    # Steal the RefPair class, but we do not care about the name for
     # writing to output, use "name" as a placeholder
     ref_pair = classes.RefPair(san_ref_seq,san_gen_seq,"name")
 
@@ -64,11 +64,17 @@ for infile in args.infiles:
     gen_list = []
     ref_list = []
     for i, (rg,rf) in enumerate(zip(gen_seq,ref_seq)):
+        #print "position: %d" % (i+1)
+        #print "reference nucleotide: %s" % (rf)
+        #print "reference codon position: %d" % (ref_pair.index_rposition())
+        #print "genomic nucleotide is: %s" % (rg)
+        #print "genomic codon position: %d" % (ref_pair.index_gposition())
+        #print
         # A gap in both genomic and reference sequences is unlikely,
         # but we should account for it just in case
         if rf == '-' and rg == '-':
+            #print "gap in both. Passing"
             pass
-
         # Identify inserts in reference sequence
         # We found an indel in the ref relative to the genomic
         elif rf != '-' and rg == '-' and ref_start == 'NA':
@@ -77,6 +83,7 @@ for infile in args.infiles:
             if ref_pair.index_rposition() == 1:
                 # If our gap starts in RF +1 then we can continue
                 ref_start = i
+                #print "starting gap in ref sequence at position %d with residue %s" % (ref_start+1, rf)
             else:
                 # If not, keep checking
                 pass
@@ -86,6 +93,7 @@ for infile in args.infiles:
             # If the indel is at the end, then we need to close it
             if i == (len(ref_seq) - 1):
                 ref_end = sequence.close_gap(i,ref_pair.index_rposition())
+                #print "closing gap in ref sequence due to end of sequence at position %d" % (ref_end+1)
                 ref_list.append([ref_start,ref_end])
                 ref_pair.incr_all_ref()
                 ref_start = 'NA'
@@ -96,20 +104,24 @@ for infile in args.infiles:
         elif rf != '-' and rg != '-' and ref_start != 'NA':
             # Simply close the gap
             ref_end = sequence.close_gap(i,ref_pair.index_rposition())
+            #print "closing gap in ref sequence at position %d" % (ref_end+1)
             ref_list.append([ref_start,ref_end])
             ref_pair.incr_all_ref()
+            ref_pair.incr_all_gen()
             ref_start = 'NA'
 
         # Repeat for genomic sequence
         elif rg != '-' and rf == '-' and gen_start == 'NA':
             if ref_pair.index_gposition() == 1:
                 gen_start = i
+                #print "starting gap in gen sequence at position %d with residue %s" % (gen_start+1, rg)
             else:
                 pass
             ref_pair.incr_all_gen()
         elif rg != '-' and rf == '-' and gen_start != 'NA':
             if i == (len(gen_seq) - 1):
                 gen_end = sequence.close_gap(i,ref_pair.index_gposition())
+                #print "closing gap in gen sequence due to end of sequence at position %d" % (gen_end+1)
                 gen_list.append([gen_start,gen_end])
                 ref_pair.incr_all_gen()
                 gen_start = 'NA'
@@ -117,10 +129,17 @@ for infile in args.infiles:
                 ref_pair.incr_all_gen()
         elif rg != '-' and rf != '-' and gen_start != 'NA':
             gen_end = sequence.close_gap(i,ref_pair.index_gposition())
+            #print "closing gap in gen sequence at position %d" % (gen_end+1)
             gen_list.append([gen_start,gen_end])
             ref_pair.incr_all_gen()
+            ref_pair.incr_all_ref()
             gen_start = 'NA'
-
+        # Also pass if a residue is present in both
+        elif rf != '-' and rg != '-':
+            # Still need to increment counters though!
+            #print "incrementing in both"
+            ref_pair.incr_all_ref()
+            ref_pair.incr_all_gen()
 
     # Check over all of the reference indices
     ref_indices = []
