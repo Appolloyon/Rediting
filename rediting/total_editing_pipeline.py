@@ -36,6 +36,7 @@ parser.add_argument('-t', '--polyt', action='store_true', help='calculate polyT'
 parser.add_argument('-p', '--percent', help='percent cut-off for polyT', default=70)
 args = parser.parse_args()
 
+# Store argparse variables in global variables for later use
 num_equal = int(args.numequal)
 size = int(args.size)
 percent = int(args.percent)
@@ -218,8 +219,8 @@ for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
                         len(new_gen_seq)-7, 7)
             # In the middle take 3 bases on either side (seven total)
             else:
-                # Determine whether the region fits the definition of "polyT"
                 polyt_test_seq = strings.gulp(new_gen_seq, i-3, 7)
+            # Determine whether the region fits the definition of "polyT"
             if sequence.polyT(polyt_test_seq):
                 is_polyt = "Y"
 

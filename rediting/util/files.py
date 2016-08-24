@@ -14,7 +14,8 @@ def nonblank_lines(f):
 
 
 def build_seqdict(infile, seqdict):
-    """Builds a dictionary of header/sequence key value pairs"""
+    """Builds a dictionary of header/sequence key value pairs.
+    NOTE: assumes FASTA formatted input file!"""
     with open(infile,'U') as f:
         for line in nonblank_lines(f):
             line = line.strip('\n')
@@ -38,6 +39,7 @@ def get_variable_file_handle(infile,mode,delimeter=None,write_list=None):
     if write_list is not None and delimeter is None:
         # If not specified, but needed, delimeter is a comma
         delimeter = ','
+    # Typically, use this to write header lines
     if write_list is not None:
         for elem in write_list:
             file_obj.write(elem + delimeter)

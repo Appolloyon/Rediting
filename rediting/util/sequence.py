@@ -8,6 +8,7 @@ nucleotide sequences into their amino acid equivalents"""
 import re
 import random
 import sys
+# Increase recursion limit for get_non_overlapping_indices function
 sys.setrecursionlimit(10000)
 
 from classes import matrices
