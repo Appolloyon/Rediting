@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest import skip
 
 from rediting.util import rmath
+from context import sample
 
 class TestMath(TestCase):
 
@@ -31,4 +32,43 @@ class TestMath(TestCase):
 
     @skip("skipped for now")
     def test_ispolyTpercent(self):
+        pass
+
+    def test_entropy_invariant(self):
+        aa_list = "AAAAAAAAAAAAAAAAAAAA"
+        calc_ent = rmath.calculate_entropy(aa_list)
+        self.assertAlmostEqual(calc_ent,1.0,places=2)
+
+    def test_entropy_max(self):
+        aa_list = "GPAVLIMCFYWHKRQNEDST"
+        calc_ent = rmath.calculate_entropy(aa_list)
+        self.assertAlmostEqual(calc_ent,0.0,places=2)
+
+    def test_entropy_gap50(self):
+        aa_list = "AAAAAAAAAA----------"
+        calc_ent = rmath.calculate_entropy(aa_list)
+        self.assertAlmostEqual(calc_ent,0.50,places=2)
+
+    @skip("skipped for now")
+    def test_calculate_score_diff(self):
+        pass
+
+    @skip("skipped for now")
+    def test_avg_score_diff(self):
+        pass
+
+    @skip("skipped for now")
+    def test_weighted_choice(self):
+        pass
+
+    @skip("skipped for now")
+    def test_pval_freq_100(self):
+        pass
+
+    @skip("skipped for now")
+    def test_pval_freq_50(self):
+        pass
+
+    @skip("skipped for now")
+    def test_pval_freq_0(self):
         pass

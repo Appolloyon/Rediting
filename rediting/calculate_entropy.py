@@ -7,12 +7,12 @@ import argparse
 from util import files, sequence, strings, rmath
 
 parser = argparse.ArgumentParser(
-    description = """Calculates amino acids before and after editing to a reference""",
+    description = """Calculates entropy scores compared to multiple references""",
     epilog = """Unlike the other programs in this suite that take aligned nucleotide
         sequences as input, this program is designed to work with aligned amino acid
-        sequences instead. It will simply go through each sequence and determine
-        whether the amino acid changes observed between genomic and RNA sequences
-        make the resulting sequence more or less similar to the reference sequence.""")
+        sequences instead. At each position in the alignment, as long as more than 50%
+        of the reference sequences contain residues (not gaps), will calculate the
+        positional entropy. This is performed for both edited and unedited residues.""")
 parser.add_argument('-in', '--infile', help='infile with aligned sequences')
 parser.add_argument('-n', '--name', help='name to append to outfile file')
 parser.add_argument('-r', '--RNA', help='unique string present in RNA sequence headers')

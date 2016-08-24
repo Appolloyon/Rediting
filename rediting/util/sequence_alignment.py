@@ -7,7 +7,7 @@ this code is based off code publically available at: https://github.com
 greatly appreciates code contribution from the above source."""
 
 
-from classes.matrices import Blosum62
+from rediting.classes.matrices import Blosum62
 import numpy as np
 
 def create_affine_matrices(seq1,seq2,gap_open=-11,gap_extend=-1):
