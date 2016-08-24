@@ -34,7 +34,7 @@ parser.add_argument('-neq', '--numequal', help='number of equal residues out of 
         to signify start/end of alignment', default=7)
 parser.add_argument('-s', '--size', help='number of residues to compare to determine\
         start/end of an alignment', default=9)
-parser.add_argument('-w', '--window_size', help='size of sliding window', default=30)
+parser.add_argument('-w', '--window_size', help='size of sliding window', default=60)
 parser.add_argument('-p', '--protein', action='store_true', help='compare conceptual translations as well')
 parser.add_argument('-o', '--synonymous', action='store_true', help='only record non-synonymous edits')
 parser.add_argument('-b', '--both', action='store_true', help='plot both RNA and genomic similarity\
