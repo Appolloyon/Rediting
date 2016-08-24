@@ -36,6 +36,7 @@ name = args.name
 
 # Create a "master" outfile to collate data from multiple runs
 m_out = args.outfile
+s_out = m_out.rsplit('.',1)[0] + "_stats.csv"
 if os.path.isfile(m_out):
     # Appends if specified file already exists
     m_o = files.get_variable_file_handle(m_out,'a')
@@ -44,6 +45,13 @@ else:
     mlist = ['gene','number nucleotide edits','number AA edits','average number sim AA edits',
             'average edit score','average sim edit score','frequency of significant editing']
     m_o = files.get_variable_file_handle(m_out,'w',',',mlist)
+if os.path.isfile(s_out):
+    s_o = files.get_variable_file_handle(s_out,'a')
+else:
+    slist = ['gene','num 1st pos','num 2nd pos','num 3rd pos','A to T','A to G',
+            'A to C','T to A','T to G','T to C','G to A','G to T','G to C',
+            'C to A','C to T','C to G']
+    s_o = files.get_variable_file_handle(s_out,'w',',',slist)
 
 # Load sequence data into a data structure for internal use
 seqdict = {}
@@ -251,6 +259,9 @@ sig_pvals = rmath.sig_pvalue_frequency(p_values)
 m_o.write("%s,%s,%s,%.2f,%.2f,%.2f,%.2f" % (name,num_edits,num_exp_edits,
     avg_sim_aa_edits,avg_score,avg_sim_score,sig_pvals))
 m_o.write("\n")
+
+print simulation.get_value(simulation.codon_pos_dict)
+simulation.write_sim_information(name,s_o)
 #simulation.get_codon_percent()
 #simulation.get_base_conversion()
 

@@ -34,4 +34,4 @@ for infile in args.infiles:
     # For each file, call the program
     subprocess.call(["/Users/cklinger/git/Rediting/rediting/sliding_window.py",
         "-in", infile, "-out", out, "-n", short_in,
-        "-g", gene, "-r", rna, "-gen", gen, "-p", "-o"])
+        "-g", gene, "-r", rna, "-gen", gen, "-p", "-b"])#, "-o"])

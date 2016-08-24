@@ -34,9 +34,11 @@ parser.add_argument('-neq', '--numequal', help='number of equal residues out of 
         to signify start/end of alignment', default=7)
 parser.add_argument('-s', '--size', help='number of residues to compare to determine\
         start/end of an alignment', default=9)
-parser.add_argument('-w', '--window_size', help='size of sliding window', default=60)
+parser.add_argument('-w', '--window_size', help='size of sliding window', default=30)
 parser.add_argument('-p', '--protein', action='store_true', help='compare conceptual translations as well')
 parser.add_argument('-o', '--synonymous', action='store_true', help='only record non-synonymous edits')
+parser.add_argument('-b', '--both', action='store_true', help='plot both RNA and genomic similarity\
+        to the reference sequence')
 args = parser.parse_args()
 
 window_size = float(args.window_size)
@@ -80,8 +82,11 @@ if args.protein:
     san_gen_seq = strings.sanitize(gen_seq)
     san_ref_seq = strings.sanitize(ref_seq)
     ref_pair = classes.RefPair(san_ref_seq,san_gen_seq,name)
+    if args.both:
+        ref_pair2 = classes.RefPair(san_ref_seq,san_gen_seq,name)
 # To use only synonymous edits, we need to have the corresponding
 # amino acids for both the genomic and RNA sequences
+# This is also the case for comparing RNA to reference
 if args.synonymous:
     san_gen_seq = strings.sanitize(gen_seq)
     san_rna_seq = strings.sanitize(rna_seq)
@@ -99,11 +104,15 @@ try:
             # If we are using classes, need to update them as we go
             if args.protein:
                 ref_pair.incr_all_gen()
+                if args.both:
+                    ref_pair2.incr_all_gen()
             if args.synonymous:
                 seq_pair.incr_all()
         if ref_seq[i] != '-':
             if args.protein:
                 ref_pair.incr_all_ref()
+                if args.both:
+                    ref_pair2.incr_all_ref()
         if rna_seq[i] != '-':
             if args.synonymous:
                 seq_pair.incr_mrna()
@@ -164,6 +173,7 @@ for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
             elif seq_pair.lookup_gaa() != seq_pair.lookup_maa():
                 # The "1" indicates an edit
                 compstr1 += str(1)
+        if args.synonymous:
             seq_pair.incr_all()
             seq_pair.incr_mrna()
         else:
@@ -184,27 +194,51 @@ for start,end in sequence.get_indices(compstr1, window_size):
         pass
 
 # Calculates % sequence identity beween genomic and reference sequences
-compstr2 = ''
+gen_ref_string = ''
 for i, (res1, res2) in enumerate(zip(new_gen_seq, new_ref_seq)):
     # Essentially a binary comparison, either identical or not
     if res1 == res2:
-        compstr2 += str(1) # Identical
+        gen_ref_string += str(1) # Identical
     elif res1 != res2:
-        compstr2 += str(0) # Not identical
+        gen_ref_string += str(0) # Not identical
     else:
         pass
 
+# Calculates % sequence identity between RNA and reference sequences
+if args.both:
+    rna_ref_string = ''
+    for i, (res1, res2) in enumerate(zip(new_rna_seq, new_ref_seq)):
+        # Same as above
+        if res1 == res2:
+            rna_ref_string += str(1) # Identical
+        elif res1 != res2:
+            rna_ref_string += str(0) # Not identical
+        else:
+            pass
+
 # Calculates percent gen/ref identity for each window
-identity_list = []
+gen_identity_list = []
 # Same as above, get all windows
-for start,end in sequence.get_indices(compstr2, window_size):
+for start,end in sequence.get_indices(gen_ref_string, window_size):
     try:
-        identity_list.append(sequence.calc_percent(
-            compstr2, start, end, window_size))
+        gen_identity_list.append(sequence.calc_percent(
+            gen_ref_string, start, end, window_size))
     # We shouldn't throw this error, but just in case
     except(ValueError,IndexError):
         print "Error detected while adding to identity_list"
         pass
+
+# Calcuates percent RNA/ref identity for each window
+if args.both:
+    rna_identity_list = []
+    for start,end in sequence.get_indices(rna_ref_string, window_size):
+        try:
+            rna_identity_list.append(sequence.calc_percent(
+                rna_ref_string, start, end, window_size))
+        # We shouldn't throw this error, but just in case
+        except(ValueError,IndexError):
+            print "Error detected while adding to identity_list"
+            pass
 
 # If we want to calculate protein sequence similarity over the same
 # stretch, we have to accept some inherent complexity
@@ -212,7 +246,7 @@ if args.protein:
     # Note we are calculating similarity, not identity
     # This is largely because of the difference between comparing
     # four nucleotides versus 20 amino acids
-    similarity_list = []
+    gen_similarity_list = []
     for i, (rg,rr) in enumerate(zip(new_gen_seq, new_ref_seq)):
         similarity_sum = 0.0
 
@@ -249,10 +283,10 @@ if args.protein:
                     similarity_sum += 0.0
 
             if similarity_sum == 0.0 or len(raa_seq) == 0:
-                similarity_list.append(0.0)
+                gen_similarity_list.append(0.0)
             else:
                 try:
-                    similarity_list.append(
+                    gen_similarity_list.append(
                             (similarity_sum/float(len(raa_seq))*100))
                 except(ValueError,IndexError,ZeroDivisionError):
                     print "Error detected while adding to similarity_list"
@@ -264,6 +298,59 @@ if args.protein:
             ref_pair.incr_all_gen()
         if new_ref_seq[i] != '-':
             ref_pair.incr_all_ref()
+    if args.both:
+        rna_similarity_list = []
+        for i, (rm,rr) in enumerate(zip(new_rna_seq, new_ref_seq)):
+            similarity_sum = 0.0
+
+            # It is vital to know the current codon position
+            rpos = ref_pair2.index_rposition()
+            mpos = ref_pair2.index_gposition()
+            # Get the reference sequence for the window
+            rnuc_seq = strings.gulp(new_ref_seq, i, int(window_size))
+            # Using the right RF, translate the sequence
+            raa_seq = sequence.translate(rnuc_seq,rpos)
+            # Repeat this for the genomic sequence
+            mnuc_seq = strings.gulp(new_rna_seq, i, int(window_size))
+            maa_seq = sequence.translate(mnuc_seq,mpos)
+
+            if (len(rnuc_seq) == int(window_size) and
+                    len(mnuc_seq) == int(window_size)): # Sanity check!
+                # If the lengths aren't equal, align them
+                if len(raa_seq) != len(maa_seq):
+                    raa_seq,maa_seq = sequence_alignment.affine_align(raa_seq,maa_seq)
+                # Whether we align or not, continue on...
+                # Determine how similar raa_seq and gaa_seq are
+                for raa,maa in zip(raa_seq,maa_seq):
+                    # Gaps are neutral
+                    if raa == '-' or maa == '-':
+                        similarity_sum += 0.0
+                    # Identities score 1
+                    elif raa == maa:
+                        similarity_sum += 1.0
+                    # Similar residues have positive scores
+                    elif matrices.Blosum62(raa,maa).sub_score() > 0:
+                        # Similar residues only score 0.5
+                        similarity_sum += 0.5
+                    else:
+                        similarity_sum += 0.0
+
+                if similarity_sum == 0.0 or len(raa_seq) == 0:
+                    rna_similarity_list.append(0.0)
+                else:
+                    try:
+                        rna_similarity_list.append(
+                            (similarity_sum/float(len(raa_seq))*100))
+                    except(ValueError,IndexError,ZeroDivisionError):
+                        print "Error detected while adding to similarity_list"
+                        pass
+
+            # Remember to keep the counters moving, or else we cannot properly
+            # translate the sequences!
+            if new_gen_seq[i] != '-':
+                ref_pair2.incr_all_gen()
+            if new_ref_seq[i] != '-':
+                ref_pair2.incr_all_ref()
 
 # Uncomment next lines if we want to see progress on the screen
 #print
@@ -304,10 +391,10 @@ except(ZeroDivisionError):
     percent_above_average_edits = 0.0
 num_obs = len(edit_list)
 
-identity_mean = rmath.calc_mean(identity_list)
+identity_mean = rmath.calc_mean(gen_identity_list)
 try:
     PC = rmath.calc_pearson(edit_list,
-            identity_list, edit_mean, identity_mean)
+            gen_identity_list, edit_mean, identity_mean)
 # This calculation can fail, especially if edit_list is 0 length
 # In that case, the correlation is 0
 except:
@@ -318,10 +405,10 @@ tvalue = rmath.calc_tvalue(PC, num_obs)
 # Essentially, we just repeat the calculations for amino acids
 # if we are measuring this as well
 if args.protein:
-    similarity_mean = rmath.calc_mean(similarity_list)
+    similarity_mean = rmath.calc_mean(gen_similarity_list)
     try:
         aa_PC = rmath.calc_pearson(edit_list,
-            similarity_list, edit_mean, similarity_mean)
+            gen_similarity_list, edit_mean, similarity_mean)
     except:
         print "Error in calculating amino acid PC"
         aa_PC = 0.0
@@ -345,9 +432,13 @@ ax1.plot([e for e in edit_list], color='b')
 # The mean value doesn't change, but we had to make a list of the same
 # value multiple times in order to plot it properly
 ax1.plot([mean for mean in average_list], linestyle='--', color='k')
-ax2.plot([i for i in identity_list], color='m')
+ax2.plot([i for i in gen_identity_list], color='m')
+if args.both:
+    ax2.plot([i for i in rna_identity_list], color='y')
 if args.protein:
-    ax2.plot([i for i in similarity_list], color='g')
+    ax2.plot([i for i in gen_similarity_list], color='g')
+    if args.both:
+        ax2.plot([i for i in rna_similarity_list], color='r')
 
 plt.title('%s' % (name))
 ax1.set_xlabel('sliding window position')

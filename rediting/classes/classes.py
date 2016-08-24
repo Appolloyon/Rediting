@@ -346,10 +346,25 @@ class Simulation(object):
         for k,v in self.transition_dict.items():
             print "%s num %.2f" % (k,(100 * v/float(total)))
 
-    #def write_sim_information(self,file_obj):
-        #"""Writes information to a file"""
-        #file_obj.write("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,
-            #%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f" % (
-
-
-
+    def write_sim_information(self,name,file_obj):
+        """Writes information to a file"""
+        codon_total = float(self.get_value(self.codon_pos_dict))
+        base_total = float(self.get_value(self.transition_dict))
+        file_obj.write("%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,"
+            "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f" % (name,
+            (100 * self.codon_pos_dict.get(1)/codon_total),
+            (100 * self.codon_pos_dict.get(2)/codon_total),
+            (100 * self.codon_pos_dict.get(3)/codon_total),
+            (100 * self.transition_dict.get('a_t')/base_total),
+            (100 * self.transition_dict.get('a_g')/base_total),
+            (100 * self.transition_dict.get('a_c')/base_total),
+            (100 * self.transition_dict.get('t_a')/base_total),
+            (100 * self.transition_dict.get('t_g')/base_total),
+            (100 * self.transition_dict.get('t_c')/base_total),
+            (100 * self.transition_dict.get('g_a')/base_total),
+            (100 * self.transition_dict.get('g_t')/base_total),
+            (100 * self.transition_dict.get('g_c')/base_total),
+            (100 * self.transition_dict.get('c_a')/base_total),
+            (100 * self.transition_dict.get('c_t')/base_total),
+            (100 * self.transition_dict.get('c_g')/base_total)))
+        file_obj.write("\n")

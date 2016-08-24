@@ -13,7 +13,8 @@ parser = argparse.ArgumentParser(
     epilog = """This program takes aligned amino acid sequences for a
     genomic sequence and its edited RNA counterpart. It discerns the best
     aligned region and then calculates GRAVY hydrophobicity scores over
-    this region.""")
+    this region. Positions corresponding to STOP signals and other non-
+    standard amino acids are removed prior to calculating GRAVY scores.""")
 parser.add_argument('-in', '--infile', help='infile with aligned sequences')
 parser.add_argument('-out', '--outfile', help='name for master outfile')
 parser.add_argument('-r', '--RNA', help='unique string present in RNA sequence headers')

@@ -113,7 +113,7 @@ def calculate_average_score_diff(rg,rm,aa_list):
 
 def weighted_choice(choices):
     """Allows random choices but with weighted values. Takes a list of
-    2-length tuples as input. Code provided by:
+    2-length tuples as input. Code based on:
 
     http://stackoverflow.com/questions/3679694/a-weighted-version-of-random-choice
     """
