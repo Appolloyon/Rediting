@@ -5,7 +5,6 @@ import re
 import sys
 import argparse
 
-from classes import matrices
 from util import files, sequence, strings
 
 parser = argparse.ArgumentParser(
@@ -94,53 +93,6 @@ new_ref_seq = ref_seq[i:(len(ref_seq)-j)]
 edit_list = []
 sequence.compare_aa_seqs(gen_index,new_gen_seq,new_rna_seq,
         new_ref_seq,edit_list)
-
-# Calculates amino acid edits
-#for i, (rg,rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
-#    ident_before = 'N'
-#    ident_after = 'N'
-#    sim_before = 'N'
-#    sim_after = 'N'
-#    # Insert in mrna sequence
-#    if rg == '-' and rm != '-':
-#        pass
-#    # Insert in genomic sequence
-#    elif rg != '-' and rm == '-':
-#        # Don't do anything, but move the index along
-#        gen_index += 1
-#    # Gaps in both sequences, no edits possible
-#    elif rg == '-' and rm == '-':
-#        pass
-#    # No edits, but move the index along
-#    elif rg == rm:
-#        gen_index += 1
-#    # Edit detected
-#    elif rg != rm:
-#        ref_aa = new_ref_seq[i]
-#        # We only care about edits we can actually compare
-#        if ref_aa != '-':
-#            # Check for identity
-#            if rg == ref_aa:
-#                ident_before = 'Y'
-#            if rm == ref_aa:
-#                ident_after = 'Y'
-#            # Get the relevant score from Blosum62
-#            # Similar amino acids have positive scores
-#            scr_before = matrices.Blosum62(rg,ref_aa).sub_score()
-#            scr_after = matrices.Blosum62(rm,ref_aa).sub_score()
-#            # Check for similarity
-#            # Note that while both cannot be identical, they can
-#            # both be similar
-#            if scr_before > 0:
-#                sim_before = 'Y'
-#            if scr_after > 0:
-#                sim_after = 'Y'
-#            scr_diff = (scr_after - scr_before)
-#
-#            edit_list.append([(gen_index+1),ref_aa,rg,rm,ident_before,
-#                ident_after,sim_before,sim_after,scr_diff])
-#
-#        gen_index += 1
 
 num_ident_before = 0
 num_ident_after = 0
