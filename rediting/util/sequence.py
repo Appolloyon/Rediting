@@ -14,7 +14,6 @@ sys.setrecursionlimit(10000)
 from classes import matrices
 import strings, rmath
 
-
 def compare_seqs(seq1, seq2, num_equal):
     """Compare substrings to determine start of alignment"""
     equal = 0

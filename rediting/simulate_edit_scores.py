@@ -109,6 +109,11 @@ new_gen_seq = gen_seq[i:(len(gen_seq)-j)]
 num_edits,codon_positions,cumul_weights = sequence.get_positional_information(
         new_gen_seq,new_rna_seq,seq_pair.index_position())
 
+#print num_edits
+#print codon_positions
+for weight in cumul_weights:
+    print weight
+
 # In order for MUSCLE to align, write sequences to a temporary file
 # We don't need to use sanitized sequences, because the translate function
 # removes gap characters prior to translation anyway
@@ -260,7 +265,7 @@ m_o.write("%s,%s,%s,%.2f,%.2f,%.2f,%.2f" % (name,num_edits,num_exp_edits,
     avg_sim_aa_edits,avg_score,avg_sim_score,sig_pvals))
 m_o.write("\n")
 
-print simulation.get_value(simulation.codon_pos_dict)
+#print simulation.get_value(simulation.codon_pos_dict)
 simulation.write_sim_information(name,s_o)
 #simulation.get_codon_percent()
 #simulation.get_base_conversion()
