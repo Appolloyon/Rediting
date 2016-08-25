@@ -9,12 +9,15 @@ import scipy.stats as st
 from util import files, sequence, strings
 
 parser = argparse.ArgumentParser(
-    description = """Calculates percent of edits occurring in regions
-        with higher than average editing rate across the gene""",
+    description = """Performs simulations to assess significance of edit clustering""",
     epilog = """This program is essentially identical to the sliding
     window program provided in the same package, except that it will
     require only aligned genomic/RNA sequence pairs, and will not
-    output graphs of the calculated values.""")
+    output graphs of the calculated values. Instead, the program
+    performs a number of simulations, in each case generating a sequence
+    with the same length and number of edits as the actual genomic/
+    RNA pair. The two distributions are compared to determine if they
+    could have arisen from populations (sequences) with equal variance.""")
 parser.add_argument('-in', '--infile', help='infile with aligned sequences')
 parser.add_argument('-out', '--outfile', help='name for master outfile')
 parser.add_argument('-n', '--name', help='name to append to output file')
@@ -134,7 +137,7 @@ while x < num_gens:
     # Add mutations to simulate edits
     seq2 = sequence.mutate_sequence(seq1,num_edits,bases)
     sim_dist = sequence.calc_cluster_score(seq1,seq2)
-    # Check for appropriate t test
+    # Perform test, median-centred
     p_val = st.levene(edit_list,sim_dist)
     p_values.append(p_val[1])
 
