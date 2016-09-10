@@ -11,7 +11,7 @@ import sys
 # Increase recursion limit for get_non_overlapping_indices function
 sys.setrecursionlimit(10000)
 
-from classes import matrices
+from rediting.classes import matrices
 import strings, rmath
 
 def compare_seqs(seq1, seq2, num_equal):

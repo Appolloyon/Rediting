@@ -10,7 +10,7 @@ import random
 from bisect import bisect
 import numpy as np
 
-from classes import matrices
+from rediting.classes import matrices
 import sequence
 
 def calc_mean(values):

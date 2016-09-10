@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest import skip
 
 from rediting.util import rmath
-from context import sample
+#from context import sample
 
 class TestMath(TestCase):
 
