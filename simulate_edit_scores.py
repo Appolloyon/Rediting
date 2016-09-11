@@ -11,12 +11,17 @@ from rediting.classes import classes
 from rediting.util import files, sequence, strings, rmath
 
 parser = argparse.ArgumentParser(
-    description = """Calculates percent of edits occurring in regions
-        with higher than average editing rate across the gene""",
-    epilog = """This program is essentially identical to the sliding
-    window program provided in the same package, except that it will
-    require only aligned genomic/RNA sequence pairs, and will not
-    output graphs of the calculated values.""")
+    description = """Simulates an equivalent number of edits with similar
+    edit type and codon position preferences as real sequences. Then compares
+    conceptual translations to determine whether editing is more corrective
+    than expected by chance.""",
+    epilog = """This program requires a pre-aligned file with genomic, RNA, and
+    reference sequences. It then calculates all edits in the aligned region of
+    interest between all three sequences, and simulates editing events based on
+    the observed preferences. Finally, the sequences are translated and the
+    edit scores calculated, as performed in the compare_aminoacids.py script
+    from this same package. Lastly, for each simulation, these scores are
+    compared using a ranksums test to determine significance.""")
 parser.add_argument('-in', '--infile', help='infile with aligned sequences')
 parser.add_argument('-out', '--outfile', help='name for master outfile')
 parser.add_argument('-n', '--name', help='name to append to output file')

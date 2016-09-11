@@ -14,7 +14,10 @@ parser = argparse.ArgumentParser(
     epilog = """This program is essentially identical to the sliding
     window program provided in the same package, except that it will
     require only aligned genomic/RNA sequence pairs, and will not
-    output graphs of the calculated values.""")
+    output graphs of the calculated values. Instead, it will calculate
+    the proportion of edits occurring in regions with higher than average
+    editing, as well as a 'cluster score', which is related to the window
+    value for the edit and the editing mean.""")
 parser.add_argument('-in', '--infile', help='infile with aligned sequences')
 parser.add_argument('-out', '--outfile', help='name for master outfile')
 parser.add_argument('-n', '--name', help='name to append to output file')

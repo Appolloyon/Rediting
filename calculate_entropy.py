@@ -11,8 +11,10 @@ parser = argparse.ArgumentParser(
     epilog = """Unlike the other programs in this suite that take aligned nucleotide
         sequences as input, this program is designed to work with aligned amino acid
         sequences instead. At each position in the alignment, as long as more than 50%
-        of the reference sequences contain residues (not gaps), will calculate the
-        positional entropy. This is performed for both edited and unedited residues.""")
+        of the reference sequences contain residues (not gaps), this script will calculate
+        the positional entropy at the position in regards to all reference sequences.
+        This is performed for both edited and unedited residues, and in the output file
+        this is tracked in a binary way, i.e. 0 is not edited and 1 is edited.""")
 parser.add_argument('-in', '--infile', help='infile with aligned sequences')
 parser.add_argument('-n', '--name', help='name to append to outfile file')
 parser.add_argument('-r', '--RNA', help='unique string present in RNA sequence headers')
