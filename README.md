@@ -48,8 +48,8 @@ All scripts in this folder have some built-in documentation. To view this,
 simply call the script using either the -h or --help command line flags.
 
 Some things to keep in mind:
-1) All genomic and reference sequences should be in the proper reading frame
-2) The scripts require pre-aligned sequences. This is a slight burden to the
+- All genomic and reference sequences should be in the proper reading frame
+- The scripts require pre-aligned sequences. This is a slight burden to the
 user, but also allows the use of many alternatives (e.g. MAFFT, MUSCLE, etc.)
 
 A Note to Users
