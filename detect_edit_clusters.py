@@ -6,7 +6,7 @@ import sys
 import argparse
 import numpy as np
 
-from util import files, sequence, strings, rmath
+from rediting.util import files, sequence, strings, rmath
 
 parser = argparse.ArgumentParser(
     description = """Calculates percent of edits occurring in regions

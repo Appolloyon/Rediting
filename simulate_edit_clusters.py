@@ -6,7 +6,7 @@ import sys
 import argparse
 import scipy.stats as st
 
-from util import files, sequence, strings
+from rediting.util import files, sequence, strings
 
 parser = argparse.ArgumentParser(
     description = """Performs simulations to assess significance of edit clustering""",

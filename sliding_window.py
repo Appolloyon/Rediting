@@ -6,8 +6,8 @@ import sys
 import argparse
 import matplotlib.pyplot as plt
 
-from classes import classes, matrices
-from util import sequence_alignment, files, rmath, sequence, strings
+from rediting.classes import classes, matrices
+from rediting.util import sequence_alignment, files, rmath, sequence, strings
 
 parser = argparse.ArgumentParser(
     description = """Compares editing frequency between aligned genomic/RNA

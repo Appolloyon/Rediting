@@ -3,8 +3,8 @@
 import re
 import argparse
 
-from classes import classes
-from util import files,strings,sequence
+from rediting.classes import classes
+from rediting.util import files,strings,sequence
 
 parser = argparse.ArgumentParser(
     description = """Trims aligned genomic/RNA sequences and a reference

@@ -5,8 +5,8 @@ import os
 import sys
 import argparse
 
-from classes import classes,matrices
-from util import files, rmath, sequence, strings
+from rediting.classes import classes,matrices
+from rediting.util import files, rmath, sequence, strings
 
 parser = argparse.ArgumentParser(
     description = """Calculates editing stats between genomic/RNA sequences""",

@@ -4,7 +4,7 @@ import re
 import sys
 import argparse
 
-from util import files, sequence, strings, rmath
+from rediting.util import files, sequence, strings, rmath
 
 parser = argparse.ArgumentParser(
     description = """Calculates entropy scores compared to multiple references""",

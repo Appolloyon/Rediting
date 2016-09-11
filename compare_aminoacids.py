@@ -5,7 +5,7 @@ import re
 import sys
 import argparse
 
-from util import files, sequence, strings
+from rediting.util import files, sequence, strings
 
 parser = argparse.ArgumentParser(
     description = """Calculates amino acids before and after editing to a reference""",

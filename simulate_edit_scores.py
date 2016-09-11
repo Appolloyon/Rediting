@@ -7,8 +7,8 @@ import argparse
 import subprocess
 import scipy.stats as st
 
-from classes import classes
-from util import files, sequence, strings, rmath
+from rediting.classes import classes
+from rediting.util import files, sequence, strings, rmath
 
 parser = argparse.ArgumentParser(
     description = """Calculates percent of edits occurring in regions

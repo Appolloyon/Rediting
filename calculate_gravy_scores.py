@@ -6,7 +6,7 @@ import sys
 import argparse
 
 from Bio.SeqUtils import ProtParam as PP
-from util import files, sequence, strings
+from rediting.util import files, sequence, strings
 
 parser = argparse.ArgumentParser(
     description = """Calculates gravy scores before and after editing""",
