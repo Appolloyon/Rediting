@@ -204,6 +204,7 @@ for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
         gaa = seq_pair.lookup_gaa()
         maa = seq_pair.lookup_maa()
         scr = (matrices.Blosum62(gaa, maa).sub_score())
+        non_syn = sequence.check_nonsynonymous_edit(cpos, gcod, mnuc)
 
         # We can identify whether the residue is present in a region of local
         # 'T' concentration, i.e. polyT
@@ -241,9 +242,9 @@ for i, (rg, rm) in enumerate(zip(new_gen_seq, new_rna_seq)):
                 is_polyt_percent = "Y"
 
         if not args.polyt:
-            edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr])
+            edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr,non_syn])
         elif args.polyt:
-            edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr,
+            edit_list.append([pos,cpos,gnuc,mnuc,gcod,mcod,gaa,maa,scr,non_syn,
                 is_polyt,is_polyt_percent])
 
         # Only update codons if we care about them
@@ -305,10 +306,12 @@ if args.polyt:
                 len(percent_polyt_indices)) * 100
 
 subscore = 0
+num_nonsyn = 0
 num_aaedits = 0
 num_first_pos = 0
 num_second_pos = 0
 num_third_pos = 0
+seen_positions = []
 with open(b_out,'w') as b_o:
     # Write header line for each gene sheet
     b_o.write("position,codon position,genome base,mRNAbase,genome codon,"
@@ -320,34 +323,51 @@ with open(b_out,'w') as b_o:
     b_o.write("\n" * 2)
 
     if args.polyt:
-        for P, C, GN, MN, GC, MC, GA, MA, S, IP, IPP in edit_list:
+        for P, C, GN, MN, GC, MC, GA, MA, S, NS, IP, IPP in edit_list:
             b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s"
                     % (P,C,GN,MN,GC,MC,GA,MA,S,IP,IPP) + "\n")
+            # Keep separate track of seen positions
+            seen_positions.append(P)
             # Keep a running tally of total sub score
             subscore += int(S)
             # Count certain global values
-            if GA != MA:
-                num_aaedits += 1
             if C == 1:
                 num_first_pos += 1
+                if GA != MA:
+                    num_aaedits += 1
             if C == 2:
                 num_second_pos += 1
+                if GA != MA and ((P-1) not in seen_positions): # don't count changes twice
+                    num_aaedits += 1
             if C == 3:
                 num_third_pos += 1
+                if GA != MA and ((P-1) not in seen_positions) and\
+                        ((P-2) not in seen_positions):
+                    num_aaedits += 1
+            if NS:
+                num_nonsyn += 1
     else:
         # Fewer values in each list entry without polyT
-        for P, C, GN, MN, GC, MC, GA, MA, S in edit_list:
+        for P, C, GN, MN, GC, MC, GA, MA, S, NS in edit_list:
             b_o.write("%s,%s,%s,%s,%s,%s,%s,%s,%s" %
                     (P,C,GN,MN,GC,MC,GA,MA,S) + "\n")
+            seen_positions.append(P)
             subscore += int(S)
-            if GA != MA:
-                num_aaedits += 1
             if C == 1:
                 num_first_pos += 1
+                if GA != MA:
+                    num_aaedits += 1
             if C == 2:
                 num_second_pos += 1
+                if GA != MA and ((P-1) not in seen_positions):
+                    num_aaedits += 1
             if C == 3:
                 num_third_pos += 1
+                if GA != MA and ((P-1) not in seen_positions) and\
+                        ((P-2) not in seen_positions):
+                    num_aaedits += 1
+            if NS:
+                num_nonsyn += 1
 
 # Simple % GC calculation for genomic and RNA sequences
 gcb = sequence.calc_gc(new_gen_seq)
@@ -363,7 +383,7 @@ aaedits = (float(num_aaedits)/aa_length) * 100
 
 # If no residues are edited then this will throw an error
 try:
-    non_syn = (float(num_aaedits)/numedits) * 100
+    non_syn = (float(num_nonsyn)/numedits) * 100
 except(ZeroDivisionError):
     non_syn = 0
 # Again, same error will occur if numedits is zero

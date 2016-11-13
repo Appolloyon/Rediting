@@ -478,3 +478,13 @@ def compare_aa_seqs(gen_index,gen_seq,rna_seq,ref_seq,edit_list):
                     ident_after,sim_before,sim_after,scr_diff])
             gen_index += 1
 
+
+def check_nonsynonymous_edit(cpos, gcod, mnuc):
+    """Checks whether an edit on its own results in an AA change"""
+    gcod_list = list(gcod)
+    gcod_list[cpos-1] = mnuc
+    new_gcod = "".join(gcod_list)
+    old_gaa,new_gaa = translate(gcod,1), translate(new_gcod,1)
+    if old_gaa != new_gaa:
+        return True
+    return False
